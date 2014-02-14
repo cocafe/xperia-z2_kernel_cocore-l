@@ -408,8 +408,8 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 			  selected->comm, selected_oom_score_adj,
 			  selected_tasksize);
 #endif
-		send_sig(SIGKILL, selected, 0);
 		set_tsk_thread_flag(selected, TIF_MEMDIE);
+		send_sig(SIGKILL, selected, 0);
 		rem -= selected_tasksize;
 		rcu_read_unlock();
 #ifdef CONFIG_SONY_JPROBE_LMK_HOOK
