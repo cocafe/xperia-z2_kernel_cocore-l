@@ -58,6 +58,14 @@ config IOSCHED_CFQ
 
 	  Note: If BLK_CGROUP=m, then CFQ can be built only as module.
 
+config IOSCHED_FIOPS
+	tristate "IOPS based I/O scheduler"
+	default y
+	---help---
+	  This is an IOPS based I/O scheduler. It will try to distribute
+	  IOPS equally among all processes in the system. It's mainly for
+	  Flash based storage.
+
 config CFQ_GROUP_IOSCHED
 	bool "CFQ Group Scheduling support"
 	depends on IOSCHED_CFQ && BLK_CGROUP
@@ -137,6 +145,9 @@ choice
 	config DEFAULT_SIOPLUS
 		bool "SIOPLUS" if IOSCHED_SIOPLUS=y
 
+	config DEFAULT_FIOPS
+		bool "FIOPS" if IOSCHED_FIOPS=y
+
 endchoice
 
 config DEFAULT_IOSCHED
@@ -149,6 +160,7 @@ config DEFAULT_IOSCHED
 	default "zen" if DEFAULT_ZEN
 	default "vr" if DEFAULT_VR
 	default "sioplus" if DEFAULT_SIOPLUS
+	default "fiops" if DEFAULT_FIOPS
 
 endmenu
 
