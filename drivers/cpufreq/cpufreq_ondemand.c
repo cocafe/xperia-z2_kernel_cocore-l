@@ -147,7 +147,7 @@ static struct dbs_tuners {
 	unsigned int down_differential_multi_core;
 	unsigned int optimal_freq;
 	unsigned int up_threshold_any_cpu_load;
-	unsigned int up_threshold_at_min_freq;
+	unsigned int up_threshold_cpuinfo_min_freq;
 	unsigned int sync_freq;
 	unsigned int ignore_nice;
 	unsigned int sampling_down_factor;
@@ -164,7 +164,7 @@ static struct dbs_tuners {
 	.down_differential = DEF_FREQUENCY_DOWN_DIFFERENTIAL,
 	.down_differential_multi_core = MICRO_FREQUENCY_DOWN_DIFFERENTIAL,
 	.up_threshold_any_cpu_load = DEF_FREQUENCY_UP_THRESHOLD,
-	.up_threshold_at_min_freq = 50,
+	.up_threshold_cpuinfo_min_freq = 50,
 	.ignore_nice = 0,
 	.powersave_bias = 0,
 	.sync_freq = 0,
@@ -363,7 +363,7 @@ show_one(ignore_nice_load, ignore_nice);
 show_one(down_differential_multi_core, down_differential_multi_core);
 show_one(optimal_freq, optimal_freq);
 show_one(up_threshold_any_cpu_load, up_threshold_any_cpu_load);
-show_one(up_threshold_at_min_freq, up_threshold_at_min_freq);
+show_one(up_threshold_cpuinfo_min_freq, up_threshold_cpuinfo_min_freq);
 show_one(sync_freq, sync_freq);
 show_one(input_boost, input_boost);
 show_one(block_inp_time, block_inp_time);
@@ -593,7 +593,7 @@ static ssize_t store_up_threshold_any_cpu_load(struct kobject *a,
 	return count;
 }
 
-static ssize_t store_up_threshold_at_min_freq(struct kobject *a, struct attribute *b,
+static ssize_t store_up_threshold_cpuinfo_min_freq(struct kobject *a, struct attribute *b,
 				  const char *buf, size_t count)
 {
 	unsigned int input;
@@ -604,7 +604,7 @@ static ssize_t store_up_threshold_at_min_freq(struct kobject *a, struct attribut
 			input < MIN_FREQUENCY_UP_THRESHOLD) {
 		return -EINVAL;
 	}
-	dbs_tuners_ins.up_threshold_at_min_freq = input;
+	dbs_tuners_ins.up_threshold_cpuinfo_min_freq = input;
 	return count;
 }
 
@@ -814,7 +814,7 @@ define_one_global_rw(up_threshold_multi_core);
 define_one_global_rw(down_differential_multi_core);
 define_one_global_rw(optimal_freq);
 define_one_global_rw(up_threshold_any_cpu_load);
-define_one_global_rw(up_threshold_at_min_freq);
+define_one_global_rw(up_threshold_cpuinfo_min_freq);
 define_one_global_rw(sync_freq);
 define_one_global_rw(input_boost);
 define_one_global_rw(block_inp_time);
@@ -834,7 +834,7 @@ static struct attribute *dbs_attributes[] = {
 	&down_differential_multi_core.attr,
 	&optimal_freq.attr,
 	&up_threshold_any_cpu_load.attr,
-	&up_threshold_at_min_freq.attr,
+	&up_threshold_cpuinfo_min_freq.attr,
 	&sync_freq.attr,
 	&input_boost.attr,
 	&block_inp_time.attr,
@@ -1025,8 +1025,8 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 	/* calculate the scaled load across CPU */
 	load_at_max_freq = (cur_load * policy->cur)/policy->cpuinfo.max_freq;
 
-	if (policy->cur == policy->min)
-		up_threshold = dbs_tuners_ins.up_threshold_at_min_freq;
+	if (policy->cur == policy->cpuinfo.min_freq)
+		up_threshold = dbs_tuners_ins.up_threshold_cpuinfo_min_freq;
 
 	cpufreq_notify_utilization(policy, load_at_max_freq);
 	/* Check for frequency increase */
