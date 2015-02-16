@@ -440,6 +440,8 @@ static ssize_t store_sampling_rate(struct kobject *a, struct attribute *b,
 	unsigned int input;
 	int ret;
 	ret = sscanf(buf, "%u", &input);
+	if (sysfs_streq(current->comm, "mpdecision"))
+		return -EINVAL;
 	if (ret != 1)
 		return -EINVAL;
 	update_sampling_rate(input);
@@ -452,6 +454,8 @@ static ssize_t store_input_boost(struct kobject *a, struct attribute *b,
 	unsigned int input;
 	int ret;
 	ret = sscanf(buf, "%u", &input);
+	if (sysfs_streq(current->comm, "mpdecision"))
+		return -EINVAL;
 	if (ret != 1)
 		return -EINVAL;
 	dbs_tuners_ins.input_boost = input;
@@ -465,6 +469,8 @@ static ssize_t store_sync_freq(struct kobject *a, struct attribute *b,
 	int ret;
 
 	ret = sscanf(buf, "%u", &input);
+	if (sysfs_streq(current->comm, "mpdecision"))
+		return -EINVAL;
 	if (ret != 1)
 		return -EINVAL;
 	dbs_tuners_ins.sync_freq = input;
@@ -478,6 +484,8 @@ static ssize_t store_io_is_busy(struct kobject *a, struct attribute *b,
 	int ret;
 
 	ret = sscanf(buf, "%u", &input);
+	if (sysfs_streq(current->comm, "mpdecision"))
+		return -EINVAL;
 	if (ret != 1)
 		return -EINVAL;
 	dbs_tuners_ins.io_is_busy = !!input;
@@ -491,6 +499,8 @@ static ssize_t store_down_differential_multi_core(struct kobject *a,
 	int ret;
 
 	ret = sscanf(buf, "%u", &input);
+	if (sysfs_streq(current->comm, "mpdecision"))
+		return -EINVAL;
 	if (ret != 1)
 		return -EINVAL;
 	dbs_tuners_ins.down_differential_multi_core = input;
@@ -543,6 +553,8 @@ static ssize_t store_optimal_freq(struct kobject *a, struct attribute *b,
 	int ret;
 
 	ret = sscanf(buf, "%u", &input);
+	if (sysfs_streq(current->comm, "mpdecision"))
+		return -EINVAL;
 	if (ret != 1)
 		return -EINVAL;
 	dbs_tuners_ins.optimal_freq = input;
@@ -556,6 +568,8 @@ static ssize_t store_up_threshold(struct kobject *a, struct attribute *b,
 	int ret;
 	ret = sscanf(buf, "%u", &input);
 
+	if (sysfs_streq(current->comm, "mpdecision"))
+		return -EINVAL;
 	if (ret != 1 || input > MAX_FREQUENCY_UP_THRESHOLD ||
 			input < MIN_FREQUENCY_UP_THRESHOLD) {
 		return -EINVAL;
@@ -571,6 +585,8 @@ static ssize_t store_up_threshold_multi_core(struct kobject *a,
 	int ret;
 	ret = sscanf(buf, "%u", &input);
 
+	if (sysfs_streq(current->comm, "mpdecision"))
+		return -EINVAL;
 	if (ret != 1 || input > MAX_FREQUENCY_UP_THRESHOLD ||
 			input < MIN_FREQUENCY_UP_THRESHOLD) {
 		return -EINVAL;
@@ -586,6 +602,8 @@ static ssize_t store_up_threshold_any_cpu_load(struct kobject *a,
 	int ret;
 	ret = sscanf(buf, "%u", &input);
 
+	if (sysfs_streq(current->comm, "mpdecision"))
+		return -EINVAL;
 	if (ret != 1 || input > MAX_FREQUENCY_UP_THRESHOLD ||
 			input < MIN_FREQUENCY_UP_THRESHOLD) {
 		return -EINVAL;
@@ -616,6 +634,8 @@ static ssize_t store_down_differential(struct kobject *a, struct attribute *b,
 	int ret;
 	ret = sscanf(buf, "%u", &input);
 
+	if (sysfs_streq(current->comm, "mpdecision"))
+		return -EINVAL;
 	if (ret != 1 || input >= dbs_tuners_ins.up_threshold ||
 			input < MIN_FREQUENCY_DOWN_DIFFERENTIAL) {
 		return -EINVAL;
@@ -633,6 +653,8 @@ static ssize_t store_sampling_down_factor(struct kobject *a,
 	int ret;
 	ret = sscanf(buf, "%u", &input);
 
+	if (sysfs_streq(current->comm, "mpdecision"))
+		return -EINVAL;
 	if (ret != 1 || input > MAX_SAMPLING_DOWN_FACTOR || input < 1)
 		return -EINVAL;
 	dbs_tuners_ins.sampling_down_factor = input;
@@ -655,6 +677,8 @@ static ssize_t store_ignore_nice_load(struct kobject *a, struct attribute *b,
 	unsigned int j;
 
 	ret = sscanf(buf, "%u", &input);
+	if (sysfs_streq(current->comm, "mpdecision"))
+		return -EINVAL;
 	if (ret != 1)
 		return -EINVAL;
 
