@@ -146,7 +146,9 @@ static struct dbs_tuners {
 	unsigned int down_differential;
 	unsigned int down_differential_multi_core;
 	unsigned int optimal_freq;
+	unsigned int highspeed_freq;
 	unsigned int up_threshold_any_cpu_load;
+	unsigned int up_threshold_over_high_speed;
 	unsigned int up_threshold_cpuinfo_min_freq;
 	unsigned int sync_freq;
 	unsigned int ignore_nice;
@@ -164,7 +166,9 @@ static struct dbs_tuners {
 	.down_differential = DEF_FREQUENCY_DOWN_DIFFERENTIAL,
 	.down_differential_multi_core = MICRO_FREQUENCY_DOWN_DIFFERENTIAL,
 	.up_threshold_any_cpu_load = DEF_FREQUENCY_UP_THRESHOLD,
+	.up_threshold_over_high_speed = 95,
 	.up_threshold_cpuinfo_min_freq = 50,
+	.highspeed_freq = 1728000,
 	.ignore_nice = 0,
 	.powersave_bias = 0,
 	.sync_freq = 0,
@@ -362,7 +366,9 @@ show_one(sampling_down_factor, sampling_down_factor);
 show_one(ignore_nice_load, ignore_nice);
 show_one(down_differential_multi_core, down_differential_multi_core);
 show_one(optimal_freq, optimal_freq);
+show_one(highspeed_freq, highspeed_freq);
 show_one(up_threshold_any_cpu_load, up_threshold_any_cpu_load);
+show_one(up_threshold_over_high_speed, up_threshold_over_high_speed);
 show_one(up_threshold_cpuinfo_min_freq, up_threshold_cpuinfo_min_freq);
 show_one(sync_freq, sync_freq);
 show_one(input_boost, input_boost);
@@ -560,6 +566,20 @@ static ssize_t store_optimal_freq(struct kobject *a, struct attribute *b,
 	return count;
 }
 
+static ssize_t store_highspeed_freq(struct kobject *a, struct attribute *b,
+				   const char *buf, size_t count)
+{
+	unsigned int input;
+	int ret;
+
+	ret = sscanf(buf, "%u", &input);
+	if (ret != 1)
+		return -EINVAL;
+	dbs_tuners_ins.highspeed_freq = input;
+
+	return count;
+}
+
 static ssize_t store_up_threshold(struct kobject *a, struct attribute *b,
 				  const char *buf, size_t count)
 {
@@ -608,6 +628,21 @@ static ssize_t store_up_threshold_any_cpu_load(struct kobject *a,
 		return -EINVAL;
 	}
 	dbs_tuners_ins.up_threshold_any_cpu_load = input;
+	return count;
+}
+
+static ssize_t store_up_threshold_over_high_speed(struct kobject *a, struct attribute *b,
+				  const char *buf, size_t count)
+{
+	unsigned int input;
+	int ret;
+	ret = sscanf(buf, "%u", &input);
+
+	if (ret != 1 || input > MAX_FREQUENCY_UP_THRESHOLD ||
+			input < MIN_FREQUENCY_UP_THRESHOLD) {
+		return -EINVAL;
+	}
+	dbs_tuners_ins.up_threshold_over_high_speed = input;
 	return count;
 }
 
@@ -837,7 +872,9 @@ define_one_global_rw(powersave_bias);
 define_one_global_rw(up_threshold_multi_core);
 define_one_global_rw(down_differential_multi_core);
 define_one_global_rw(optimal_freq);
+define_one_global_rw(highspeed_freq);
 define_one_global_rw(up_threshold_any_cpu_load);
+define_one_global_rw(up_threshold_over_high_speed);
 define_one_global_rw(up_threshold_cpuinfo_min_freq);
 define_one_global_rw(sync_freq);
 define_one_global_rw(input_boost);
@@ -857,7 +894,9 @@ static struct attribute *dbs_attributes[] = {
 	&up_threshold_multi_core.attr,
 	&down_differential_multi_core.attr,
 	&optimal_freq.attr,
+	&highspeed_freq.attr,
 	&up_threshold_any_cpu_load.attr,
+	&up_threshold_over_high_speed.attr,
 	&up_threshold_cpuinfo_min_freq.attr,
 	&sync_freq.attr,
 	&input_boost.attr,
@@ -1051,6 +1090,8 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 
 	if (policy->cur == policy->cpuinfo.min_freq)
 		up_threshold = dbs_tuners_ins.up_threshold_cpuinfo_min_freq;
+	else if (policy->cur >= dbs_tuners_ins.highspeed_freq)
+		up_threshold = dbs_tuners_ins.up_threshold_over_high_speed;
 
 	cpufreq_notify_utilization(policy, load_at_max_freq);
 	/* Check for frequency increase */
@@ -1566,6 +1607,9 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 				max(min_sampling_rate,
 				    latency * LATENCY_MULTIPLIER);
 			dbs_tuners_ins.io_is_busy = should_io_be_busy();
+
+			if (dbs_tuners_ins.highspeed_freq == 0)
+				dbs_tuners_ins.highspeed_freq = policy->max;
 
 			if (dbs_tuners_ins.optimal_freq == 0)
 				dbs_tuners_ins.optimal_freq = policy->min;
