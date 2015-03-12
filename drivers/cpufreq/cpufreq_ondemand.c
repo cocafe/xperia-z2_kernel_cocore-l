@@ -1161,8 +1161,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 	 * policy. To be safe, we focus 10 points under the threshold.
 	 */
 	if (max_load_freq <
-	    (dbs_tuners_ins.up_threshold - dbs_tuners_ins.down_differential) *
-	     policy->cur) {
+	    (up_threshold - dbs_tuners_ins.down_differential) * policy->cur) {
 		unsigned int freq_next;
 		freq_next = max_load_freq /
 				(dbs_tuners_ins.up_threshold -
