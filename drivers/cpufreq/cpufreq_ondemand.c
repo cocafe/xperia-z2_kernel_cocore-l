@@ -1638,10 +1638,12 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 				    latency * LATENCY_MULTIPLIER);
 			dbs_tuners_ins.io_is_busy = should_io_be_busy();
 
-			if (dbs_tuners_ins.lowspeed_freq == 0)
+			if ((dbs_tuners_ins.lowspeed_freq == 0) || 
+				(dbs_tuners_ins.lowspeed_freq < policy->min))
 				dbs_tuners_ins.lowspeed_freq = policy->min;
 
-			if (dbs_tuners_ins.highspeed_freq == 0)
+			if ((dbs_tuners_ins.highspeed_freq == 0) ||
+				(dbs_tuners_ins.highspeed_freq > policy->max))
 				dbs_tuners_ins.highspeed_freq = policy->max;
 
 			if (dbs_tuners_ins.optimal_freq == 0)
