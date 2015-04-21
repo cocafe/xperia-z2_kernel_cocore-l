@@ -25,6 +25,7 @@
 #include <linux/qpnp/pwm.h>
 #include <linux/err.h>
 #include <linux/regulator/consumer.h>
+#include <linux/mdss_dsi_panel.h>
 
 #include "mdss_mdp.h"
 #include "mdss_dsi.h"
@@ -69,11 +70,17 @@ static int lcd_id;
 static uint32_t lcdid_adc;
 static bool adc_det;
 static bool display_on_in_boot;
+static bool display_onoff_state;
 static int mdss_dsi_panel_detect(struct mdss_panel_data *pdata);
 static int mdss_panel_parse_dt(struct device_node *np,
 				struct mdss_dsi_ctrl_pdata *ctrl_pdata,
 				int driver_ic, char *id_data);
 static int mdss_dsi_panel_pcc_setup(struct mdss_panel_data *pdata);
+
+bool mdss_panel_is_on(void)
+{
+	return display_onoff_state;
+}
 
 /* pcc data infomation */
 #define PANEL_SKIP_ID			0xff
@@ -699,6 +706,7 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 
 	pr_info("%s: ctrl=%p ndx=%d\n", __func__, ctrl_pdata, ctrl_pdata->ndx);
 
+	display_onoff_state = true;
 	mipi = &pdata->panel_info.mipi;
 
 	if (spec_pdata->pcc_data.pcc_sts & PCC_STS_UD) {
@@ -769,6 +777,7 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 		cancel_work_sync(&ctrl_pdata->cabc_work);
 	}
 
+	display_onoff_state = false;
 	mipi = &pdata->panel_info.mipi;
 
 	if (ctrl_pdata->off_cmds.cmd_cnt)
