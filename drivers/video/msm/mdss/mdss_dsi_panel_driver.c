@@ -25,6 +25,7 @@
 #include <linux/qpnp/pwm.h>
 #include <linux/err.h>
 #include <linux/regulator/consumer.h>
+#include <linux/mdss_dsi_panel.h>
 
 #include "mdss_mdp.h"
 #include "mdss_dsi.h"
@@ -82,6 +83,11 @@ static int mdss_dsi_panel_pcc_setup(struct mdss_panel_data *pdata);
 static void vsync_handler(struct mdss_mdp_ctl *ctl, ktime_t t);
 
 struct mdss_mdp_vsync_handler vs_handle;
+
+bool mdss_panel_is_on(void)
+{
+	return display_onoff_state;
+}
 
 /* pcc data infomation */
 #define PANEL_SKIP_ID			0xff
@@ -1077,6 +1083,7 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 	if (!spec_pdata->detected && !spec_pdata->init_from_begin)
 		return 0;
 
+	display_onoff_state = true;
 	mipi = &pdata->panel_info.mipi;
 
 	if (spec_pdata->pcc_data.pcc_sts & PCC_STS_UD) {
@@ -1167,6 +1174,7 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 		cancel_work_sync(&ctrl_pdata->cabc_work);
 	}
 
+	display_onoff_state = false;
 	mipi = &pdata->panel_info.mipi;
 
 	if (ctrl_pdata->off_cmds.cmd_cnt) {
