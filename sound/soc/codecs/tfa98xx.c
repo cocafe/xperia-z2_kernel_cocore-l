@@ -77,7 +77,7 @@ static const char *const speaker_type_text[] = {
 	"Speakerphone", "Voicecall", "FM"};
 
 static const struct soc_enum speaker_type_enum =
-	SOC_ENUM_SINGLE_EXT(8, speaker_type_text);
+	SOC_ENUM_SINGLE_EXT(6, speaker_type_text);
 
 static const char *const speaker_channel_text[] = {"Top", "Bottom", "Both"};
 static const struct soc_enum speaker_channel_enum =
