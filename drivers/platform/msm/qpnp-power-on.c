@@ -1190,7 +1190,7 @@ static int __devinit qpnp_pon_probe(struct spmi_device *spmi)
 	qpnp_powerkey_forcecrash_init(spmi, pon->base);
 #endif
 
-	pon_kobject = kobject_create_and_add("ponkey", kernel_kobj);
+	pon_kobject = kobject_create_and_add("qpnp-ponkey", kernel_kobj);
 	if (!pon_kobject) {
 		pr_err("[POnKey] Failed to create kobject interface\n");
 	}
