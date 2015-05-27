@@ -2514,6 +2514,7 @@ static int taiko_codec_enable_spk_pa(struct snd_soc_dapm_widget *w,
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
 		taiko->spkr_pa_widget_on = true;
+#ifndef CONFIG_MACH_SONY_SIRIUS
 #ifdef CONFIG_SND_SOC_WCD9320_CONTROL
 		spkwidget = true;
 
@@ -2523,14 +2524,17 @@ static int taiko_codec_enable_spk_pa(struct snd_soc_dapm_widget *w,
 			if (spkdiggain_con)
 				taiko_write(codec, TAIKO_A_CDC_RX7_VOL_CTL_B2_CTL, spkdiggain);
 		}
+#endif /* CONFIG_SND_SOC_WCD9320_CONTROL */
 #else
 		snd_soc_update_bits(codec, TAIKO_A_SPKR_DRV_EN, 0x80, 0x80);
-#endif
+#endif /* CONFIG_MACH_SONY_SIRIUS */
 		break;
 	case SND_SOC_DAPM_POST_PMD:
+#ifndef CONFIG_MACH_SONY_SIRIUS
 #ifdef CONFIG_SND_SOC_WCD9320_CONTROL
 		spkwidget = false;
-#endif
+#endif /* CONFIG_SND_SOC_WCD9320_CONTROL */
+#endif /* CONFIG_MACH_SONY_SIRIUS */
 		taiko->spkr_pa_widget_on = false;
 		snd_soc_update_bits(codec, TAIKO_A_SPKR_DRV_EN, 0x80, 0x00);
 		break;

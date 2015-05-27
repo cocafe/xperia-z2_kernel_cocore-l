@@ -29,17 +29,26 @@ bool hplanagain_con = false;
 bool hpranagain_con = false;
 bool hpldiggain_con = false;
 bool hprdiggain_con = false;
+
+#ifndef CONFIG_MACH_SONY_SIRIUS
 bool spkdiggain_con = true;
 bool spkdrv_ena = true;
+#endif
 
 bool hpwidget = false;
+
+#ifndef CONFIG_MACH_SONY_SIRIUS
 bool spkwidget = false;
+#endif
 
 u32 hplanagain = 0x20;
 u32 hpranagain = 0x20;
 u32 hpldiggain = 0x08;
 u32 hprdiggain = 0x08;
+
+#ifndef CONFIG_MACH_SONY_SIRIUS
 u32 spkdiggain = 0x02;
+#endif
 
 static ssize_t version_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
@@ -229,6 +238,7 @@ static struct kobj_attribute _file##_interface = 			\
 
 _RX_VOL_CONTROL(hpldig_gain, hpldiggain, hpldiggain_con, TAIKO_A_CDC_RX1_VOL_CTL_B2_CTL, hpwidget);
 _RX_VOL_CONTROL(hprdig_gain, hprdiggain, hprdiggain_con, TAIKO_A_CDC_RX2_VOL_CTL_B2_CTL, hpwidget);
+#ifndef CONFIG_MACH_SONY_SIRIUS
 _RX_VOL_CONTROL(spkdig_gain, spkdiggain, spkdiggain_con, TAIKO_A_CDC_RX7_VOL_CTL_B2_CTL, spkwidget);
 
 static ssize_t spkdrv_on_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
@@ -265,6 +275,7 @@ static ssize_t spkdrv_on_store(struct kobject *kobj, struct kobj_attribute *attr
 	return count;
 }
 static struct kobj_attribute spkdrv_on_interface = __ATTR(spkdrv_on, 0644, spkdrv_on_show, spkdrv_on_store);
+#endif
 
 #define _BIAS_CONTROL_(_file, _string, _reg, _por)			\
 static ssize_t _file##_show(struct kobject *kobj, 			\
@@ -313,8 +324,10 @@ _BIAS_CONTROL_(eardac_bias,  "Earpiece DAC PowerBias",
 		TAIKO_A_RX_EAR_BIAS_PA,  TAIKO_A_RX_EAR_BIAS_PA__POR);
 _BIAS_CONTROL_(linedac_bias, "LineOut DAC PowerBias", 
 		TAIKO_A_RX_LINE_BIAS_PA, TAIKO_A_RX_LINE_BIAS_PA__POR);
+#ifndef CONFIG_MACH_SONY_SIRIUS
 _BIAS_CONTROL_(spkdac_bias,  "Speaker DAC PowerBias", 
 		TAIKO_A_SPKR_DRV_BIAS_PA, TAIKO_A_SPKR_DRV_BIAS_PA__POR);
+#endif
 
 static ssize_t hph_uhqa_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
@@ -376,7 +389,9 @@ static struct attribute *taiko_bias_attrs[] = {
 	&hpldo_bias_interface.attr,
 	&eardac_bias_interface.attr,
 	&linedac_bias_interface.attr,
+#ifndef CONFIG_MACH_SONY_SIRIUS
 	&spkdac_bias_interface.attr,
+#endif
 	NULL,
 };
 
@@ -400,8 +415,10 @@ static struct attribute_group taiko_headset_interface_group = {
 };
 
 static struct attribute *taiko_speaker_attrs[] = {
+#ifndef CONFIG_MACH_SONY_SIRIUS
 	&spkdig_gain_interface.attr,
 	&spkdrv_on_interface.attr,
+#endif
 	NULL,
 };
 
