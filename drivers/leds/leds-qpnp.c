@@ -1947,11 +1947,101 @@ static ssize_t qpnp_wled_seg_store(struct device *dev,
 	return count;
 }
 
+static ssize_t qpnp_wled_max_curr_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int rc = 0;
+	char *tmp = buf;
+	u8 val;
+	struct qpnp_led_data *led;
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+
+	led = container_of(led_cdev, struct qpnp_led_data, cdev);
+
+	mutex_lock(&led->lock);
+	(void)spmi_ext_register_readl(led->spmi_dev->ctrl,
+				led->spmi_dev->sid,
+				WLED_FULL_SCALE_REG(led->base, 0),
+				&val, sizeof(val));
+
+	rc = scnprintf(tmp, PAGE_SIZE, "%i\n", (val & WLED_MAX_CURR_MASK));
+	mutex_unlock(&led->lock);
+
+	return rc;
+}
+
+static ssize_t qpnp_wled_max_curr_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	int ret = count;
+	unsigned long max_current;
+	int rc, i, num_wled_strings;
+	struct qpnp_led_data *led;
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+	u8 val;
+
+	led = container_of(led_cdev, struct qpnp_led_data, cdev);
+
+	mutex_lock(&led->lock);
+	num_wled_strings = led->wled_cfg->num_strings;
+
+	if (kstrtoul(buf, 10, &max_current)) {
+		dev_err(dev, "%s: Error, buf = %s\n", __func__, buf);
+		ret = -EINVAL;
+		goto exit;
+	}
+
+	if (max_current > WLED_MAX_CURR) {
+		dev_err(dev, "Invalid max current\n");
+		ret = -EINVAL;
+		goto exit;
+	}
+
+	for (i = 0; i < num_wled_strings; i++) {
+		rc = qpnp_led_masked_write(led,
+			WLED_FULL_SCALE_REG(led->base, i), WLED_MAX_CURR_MASK,
+			max_current);
+		if (rc) {
+			dev_err(dev,
+				"WLED max current reg write failed(%d)\n", rc);
+			ret = -EINVAL;
+			goto exit;
+		}
+	}
+	led->max_current = max_current;
+
+	/* sync */
+	val = WLED_SYNC_VAL;
+	rc = spmi_ext_register_writel(led->spmi_dev->ctrl, led->spmi_dev->sid,
+		WLED_SYNC_REG(led->base), &val, 1);
+	if (rc) {
+		dev_err(dev, "WLED set sync reg failed(%d)\n", rc);
+		ret = rc;
+		goto exit;
+	}
+
+	usleep(WLED_SYNC_WAIT_FOR_DEVICE);
+
+	val = WLED_SYNC_RESET_VAL;
+	rc = spmi_ext_register_writel(led->spmi_dev->ctrl, led->spmi_dev->sid,
+		WLED_SYNC_REG(led->base), &val, 1);
+	if (rc) {
+		dev_err(dev, "WLED reset sync reg failed(%d)\n", rc);
+		ret = rc;
+		goto exit;
+	}
+exit:
+	mutex_unlock(&led->lock);
+	return ret;
+}
+
 static struct device_attribute cabc_attrs[] = {
 	__ATTR(cabc, S_IRUGO|S_IWUSR|S_IWGRP,
 				qpnp_wled_cabc_show, qpnp_wled_cabc_store),
 	__ATTR(seg, S_IRUGO|S_IWUSR|S_IWGRP,
 				qpnp_wled_seg_show, qpnp_wled_seg_store),
+	__ATTR(max_current, S_IRUGO|S_IWUSR|S_IWGRP,
+				qpnp_wled_max_curr_show, qpnp_wled_max_curr_store),
 	__ATTR_NULL,
 };
 
