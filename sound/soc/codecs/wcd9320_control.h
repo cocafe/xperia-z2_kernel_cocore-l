@@ -24,18 +24,24 @@ extern bool hplanagain_con;
 extern bool hpranagain_con;
 extern bool hpldiggain_con;
 extern bool hprdiggain_con;
+#ifndef CONFIG_MACH_SONY_SIRIUS
 extern bool spkdiggain_con;
 extern bool spkdrv_ena;
+#endif
 extern int  uhqa_mode;
 
 extern bool hpwidget;
+#ifndef CONFIG_MACH_SONY_SIRIUS
 extern bool spkwidget;
+#endif
 
 extern u32 hplanagain;
 extern u32 hpranagain;
 extern u32 hpldiggain;
 extern u32 hprdiggain;
+#ifndef CONFIG_MACH_SONY_SIRIUS
 extern u32 spkdiggain;
+#endif
 
 #define TAIKO_HPH_VOL_MASK			0x1F
 #define TAIKO_HPH_GAIN_ENABLE			BIT(5)
