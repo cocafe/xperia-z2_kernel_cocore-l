@@ -65,3 +65,9 @@ config DHD_USE_SCHED_SCAN
 	---help---
 	  Use CFG80211 sched scan
 
+config BRCM_CCX
+	bool "Enable Broadcom CCX feature"
+	depends on BCMDHD
+	default n
+	---help---
+	  Enable Broadcom CCX feature
