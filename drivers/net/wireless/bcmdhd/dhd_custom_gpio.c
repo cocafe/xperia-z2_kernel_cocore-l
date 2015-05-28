@@ -61,6 +61,7 @@ void *wifi_get_country_code(char *ccode) { return NULL; }
 #ifdef GET_CUSTOM_MAC_ENABLE
 #define MACADDR_BUF_LEN 64
 #define MACADDR_PATH "/data/etc/wlan_macaddr0"
+#define MACADDR_USER "/data/etc/wlan_macuser0"
 #endif /* GET_CUSTOM_MAC_ENABLE */
 
 #if defined(OOB_INTR_ONLY)
@@ -187,10 +188,15 @@ static int somc_get_mac_address(unsigned char *buf)
 	if (!buf)
 		return -EINVAL;
 
-	fp = dhd_os_open_image(MACADDR_PATH);
+	fp = dhd_os_open_image(MACADDR_USER);
 	if (!fp) {
-		WL_ERROR(("%s: file open error\n", __FUNCTION__));
-		goto err;
+		WL_ERROR(("%s: user defined MAC not found, loading default.\n", __FUNCTION__));
+
+		fp = dhd_os_open_image(MACADDR_PATH);
+		if (!fp) {
+			WL_ERROR(("%s: file open error\n", __FUNCTION__));
+			goto err;
+		}
 	}
 
 	len = dhd_os_get_image_block(macaddr_buf, MACADDR_BUF_LEN, fp);
