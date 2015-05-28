@@ -1118,7 +1118,7 @@
 			compatible = "qcom,qpnp-vibrator";
 			reg = <0xc000 0x100>;
 			label = "vibrator";
-			qcom,qpnp-vib-vtg-level-mV = <2900>;
+			qcom,qpnp-vib-vtg-level-mV = <3100>;
 		};
 
 		qcom,vibrator@c100 {
