@@ -23,6 +23,7 @@
 #include <linux/interrupt.h>
 #include <linux/delay.h>
 #include <linux/qpnp/qpnp-adc.h>
+#include <linux/qpnp-led-rgb.h>
 #include <linux/power_supply.h>
 #include <linux/bitops.h>
 #include <linux/ratelimit.h>
@@ -580,6 +581,14 @@ enum usbin_health {
 	USBIN_UNKNOW,
 	USBIN_OK,
 	USBIN_OVP,
+};
+
+static bool eoc_notice = true;
+static int  eoc_last   = 0;
+static int  eoc_led[]  = {
+	120,
+	200,
+	200,
 };
 
 static void check_unplug_wakelock(struct qpnp_chg_chip *chip);
@@ -4745,6 +4754,13 @@ qpnp_eoc_work(struct work_struct *work)
 				if (!chip->bat_is_cool && !chip->bat_is_warm) {
 					pr_info("End of Charging\n");
 					chip->chg_done = true;
+
+					if (eoc_notice) {
+						eoc_last = 1;
+						qpnp_led_rgb_set(LED_RED,   eoc_led[0]);
+						qpnp_led_rgb_set(LED_GREEN, eoc_led[1]);
+						qpnp_led_rgb_set(LED_BLUE,  eoc_led[2]);
+					}
 				} else {
 					pr_info("stop charging: battery is %s, vddmax = %d reached\n",
 						chip->bat_is_cool
@@ -6968,6 +6984,70 @@ qpnp_chg_exit(void)
 }
 module_exit(qpnp_chg_exit);
 
+static ssize_t eoc_led_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+	sprintf(buf,   "status: %s\n", eoc_notice ? "on" : "off");
+	sprintf(buf, "%seoc: %s\n", buf, eoc_last ? "yes" : "no");
+	sprintf(buf, "%sled: %d %d %d\n", buf, eoc_led[0], eoc_led[1], eoc_led[2]);
+
+	return strlen(buf);
+}
+
+static ssize_t eoc_led_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
+{
+	int r, g, b;
+
+	if (sysfs_streq(buf, "on")) {
+		eoc_notice = true;
+
+		return count;
+	}
+
+	if (sysfs_streq(buf, "off")) {
+		eoc_notice = false;
+
+		return count;
+	}
+
+	if (sscanf(buf, "led=%u %u %u", &r, &g, &b) == 3) {
+		eoc_led[0] = r;
+		eoc_led[1] = g;
+		eoc_led[2] = b;
+
+		return count;
+	}
+
+	return -EINVAL;
+}
+static struct kobj_attribute eoc_led_interface = __ATTR(eoc_led, 0644, eoc_led_show, eoc_led_store);
+
+static struct attribute *qpnp_charger_attrs[] = {
+	&eoc_led_interface.attr,
+	NULL,
+};
+
+static struct attribute_group qpnp_charger_interface_group = {
+	.attrs = qpnp_charger_attrs,
+};
+
+static struct kobject *qpnp_charger_kobject;
+
+static int __init qpnp_charger_sysfs_init(void)
+{
+	int ret;
+
+	qpnp_charger_kobject = kobject_create_and_add("qpnp-charger", kernel_kobj);
+	if (!qpnp_charger_kobject) {
+		pr_err("qpnp_charger: Failed to create kobject interface\n");
+	}
+	ret = sysfs_create_group(qpnp_charger_kobject, &qpnp_charger_interface_group);
+	if (ret) {
+		kobject_put(qpnp_charger_kobject);
+	}
+
+        return 0;
+}
+late_initcall(qpnp_charger_sysfs_init);
 
 MODULE_DESCRIPTION("QPNP charger driver");
 MODULE_LICENSE("GPL v2");
