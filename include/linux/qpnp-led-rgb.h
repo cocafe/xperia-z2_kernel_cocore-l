@@ -1,8 +1,8 @@
-enum rgb_color
+enum led_color
 {
-	COLOR_RED = 0,
-	COLOR_GREEN,
-	COLOR_BLUE,
+	LED_RED = 0,
+	LED_GREEN,
+	LED_BLUE,
 };
 
-void qpnp_led_rgb_set(enum rgb_color color, int brightness);
+void qpnp_led_rgb_set(enum led_color color, int brightness);

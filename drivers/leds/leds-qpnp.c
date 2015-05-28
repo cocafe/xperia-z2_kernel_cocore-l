@@ -1658,18 +1658,18 @@ static void qpnp_led_work(struct work_struct *work)
 	return;
 }
 
-void qpnp_led_rgb_set(enum rgb_color color, int brightness)
+void qpnp_led_rgb_set(enum led_color color, int brightness)
 {
 	struct qpnp_led_data *led;
 
 	switch (color) {
-	case COLOR_RED:
+	case LED_RED:
 		led = led_rgb_r;
 		break;
-	case COLOR_GREEN:
+	case LED_GREEN:
 		led = led_rgb_g;
 		break;
-	case COLOR_BLUE:
+	case LED_BLUE:
 		led = led_rgb_b;
 		break;
 	default:
