@@ -1169,7 +1169,7 @@
 &sdhc_1 {
 	qcom,clk-rates = <400000 20000000 25000000 50000000 100000000>;
 	qcom,bus-speed-mode = "DDR_1p8v";
-	qcom,pad-drv-on = <0x7 0x4 0x4>; /* 16mA, 10mA, 10mA */
+	qcom,pad-drv-on = <0x4 0x2 0x2>; /* 10mA, 6mA, 6mA */
 };
 
 &sdhc_2 {
