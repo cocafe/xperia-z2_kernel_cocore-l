@@ -1658,6 +1658,28 @@ static void qpnp_led_work(struct work_struct *work)
 	return;
 }
 
+int qpnp_led_rgb_get(enum led_color color)
+{
+	struct qpnp_led_data *led;
+
+	switch (color) {
+	case LED_RED:
+		led = led_rgb_r;
+		break;
+	case LED_GREEN:
+		led = led_rgb_g;
+		break;
+	case LED_BLUE:
+		led = led_rgb_b;
+		break;
+	default:
+		pr_err("%s: Unknown LED group\n", __func__);
+		return -EINVAL;
+	}
+
+	return led->cdev.brightness;
+}
+
 void qpnp_led_rgb_set(enum led_color color, int brightness)
 {
 	struct qpnp_led_data *led;
