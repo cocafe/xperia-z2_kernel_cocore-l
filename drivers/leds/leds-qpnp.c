@@ -1990,6 +1990,8 @@ static ssize_t qpnp_wled_seg_store(struct device *dev,
 	led = container_of(led_cdev, struct qpnp_led_data, cdev);
 	seg = led->wled_cfg->full_scale_seg;
 	ret = sscanf(buf, "%d,%d,%d,%d", &idx, &threshold, &curr, &coef);
+	if (ret != 4)
+		return -EINVAL;
 	idx %= FULL_SCALE_CURR_SEG_MAX;
 	seg[idx].threshold = (threshold %= (WLED_MAX_LEVEL + 1));
 	seg[idx].curr = (curr %= (WLED_MAX_CURR + 1));
