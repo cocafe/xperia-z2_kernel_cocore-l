@@ -45,12 +45,20 @@ config BCMDHD_INSMOD_NO_FW_LOAD
 	Enable delayes firmware
 	Enable this feature to communicate with android system command
 
+config BROADCOM_WIFI_RESERVED_MEM
+	bool "Enable memory preallocation"
+	depends on BCMDHD && CFG80211
+	select DHD_USE_STATIC_BUF
+	default n
+	---help---
+	  Use memory preallocated in platform
+
 config DHD_USE_STATIC_BUF
 	bool "Enable memory preallocation"
 	depends on BCMDHD
 	default n
 	---help---
-	  Use memory preallocated in platform
+	  Use static memory buffer
 
 config BCMDHD_HW_OOB
 	depends on BCMDHD
