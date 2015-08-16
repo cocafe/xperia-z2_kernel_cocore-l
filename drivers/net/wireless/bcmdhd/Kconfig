@@ -65,6 +65,13 @@ config DHD_USE_SCHED_SCAN
 	---help---
 	  Use CFG80211 sched scan
 
+config BROADCOM_WIFI_RESERVED_MEM
+	bool "Use CFG80211 sched scan"
+	depends on BCMDHD && CFG80211
+	default n
+	---help---
+	  Use static memory buffer
+
 config BRCM_CCX
 	bool "Enable Broadcom CCX feature"
 	depends on BCMDHD
