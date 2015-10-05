@@ -451,6 +451,11 @@ config SND_SOC_WM9713
 config SND_SOC_TFA98XX
 	tristate
 
+config SND_SOC_TFA98XX_CONTROL
+        bool "tfa98xx Control"
+	depends on SND_SOC_TFA98XX
+	help
+
 # Amp
 config SND_SOC_LM4857
 	tristate
