@@ -12,6 +12,7 @@
  */
 
 #include <linux/module.h>
+#include <linux/moduleparam.h>
 #include <linux/fs.h>
 #include <linux/slab.h>
 #include <linux/delay.h>
@@ -22,6 +23,10 @@
 #include "tfa/inc/Tfa98xx.h"
 #include "tfa/inc/Tfa98xx_Registers.h"
 #include "tfa/inc/Tfa98xx_internals.h"
+
+#ifdef CONFIG_SND_SOC_TFA98XX_CONTROL
+#include "tfa98xx_control.h"
+#endif
 
 static Tfa98xx_handle_t handles[3] = {-1, -1, -1};
 
@@ -1319,6 +1324,14 @@ static int tfa98xx_enable(void)
 	speaker_bypass_dsp_now = speaker_bypass_dsp;
 	speaker_synced_now = speaker_synced;
 
+#ifdef CONFIG_SND_SOC_TFA98XX_CONTROL
+	if (speaker_mute_TOP)
+		Tfa98xx_SetMute(handles[TOP], Tfa98xx_Mute_Amplifier);
+
+	if (speaker_mute_BOTTOM)
+		Tfa98xx_SetMute(handles[BOTTOM], Tfa98xx_Mute_Amplifier);
+#endif
+
 	return ret;
 }
 
@@ -1608,6 +1621,7 @@ static int tfa98xx_codec_put_speaker_amp_control(
 			struct snd_ctl_elem_value *ucontrol)
 {
 	pr_info("%s %ld\n", __func__, ucontrol->value.integer.value[0]);
+
 	if (ucontrol->value.integer.value[0] == 0)
 		set_speaker_amp_control_enable(false);
 	else
@@ -1879,6 +1893,8 @@ static void __exit tfa98xx_exit(void)
 	pr_info("%s\n", __func__);
 }
 
+module_param(speaker_amp_control_enable, bool, 0644);
+module_param(speaker_amp_control_on, bool, 0644);
 module_init(tfa98xx_init);
 module_exit(tfa98xx_exit);
 
