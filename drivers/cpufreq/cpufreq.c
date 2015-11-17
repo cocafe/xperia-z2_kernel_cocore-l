@@ -449,6 +449,17 @@ static ssize_t store_scaling_min_freq
 	return ret ? ret : count;
 }
 
+#ifdef CONFIG_MSM_CPU_FREQ_MAX
+static int cpufreq_user_max_scaling[] = {
+	CONFIG_MSM_CPU_FREQ_MAX,
+	CONFIG_MSM_CPU_FREQ_MAX,
+	CONFIG_MSM_CPU_FREQ_MAX,
+	CONFIG_MSM_CPU_FREQ_MAX,
+};
+#else
+static int cpufreq_user_max_scaling[] = { 0, 0, 0, 0 };
+#endif
+
 static ssize_t store_scaling_max_freq
 (struct cpufreq_policy *policy, const char *buf, size_t count)
 {
@@ -469,6 +480,14 @@ static ssize_t store_scaling_max_freq
 	ret = sscanf(buf, "%u", &new_policy.max);
 	if (ret != 1)
 		return -EINVAL;
+
+	if (sysfs_streq(current->comm, "system_monitor")) {
+		if (new_policy.max > cpufreq_user_max_scaling[policy->cpu]) {
+			new_policy.max = cpufreq_user_max_scaling[policy->cpu];
+		}
+	} else if (policy->cpu < ARRAY_SIZE(cpufreq_user_max_scaling)) {
+		cpufreq_user_max_scaling[policy->cpu] = new_policy.max;
+	}
 
 	ret = cpufreq_driver->verify(&new_policy);
 	if (ret)
