@@ -69,6 +69,7 @@ config VIDEO_V4L2_SUBDEV_API
 config DVB_CORE
 	tristate "DVB for Linux"
 	select CRC32
+	default n
 	help
 	  DVB core utility functions for device handling, software fallbacks etc.
 
