@@ -173,6 +173,12 @@ config DOLBY_DAP
 	 device, end point dependent post processing parameters and
 	 the various posrt processing parameters
 
+config SONY_SNDFX_HOOK
+	bool "Enable Sony sound effects hook in kernel level"
+	depends on SND_SOC_MSM8974
+	help
+	 Sound effects settings can be override in kernel level.
+
 config SND_SOC_MSM8974
 	tristate "SoC Machine driver for MSM8974 boards"
 	depends on ARCH_MSM8974

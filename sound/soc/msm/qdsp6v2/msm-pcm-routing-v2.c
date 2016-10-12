@@ -39,6 +39,10 @@
 #include "q6voice.h"
 #include "q6core.h"
 
+#ifdef CONFIG_SONY_SNDFX_HOOK
+#include "sony_sndfx_hook.h"
+#endif
+
 struct msm_pcm_routing_bdai_data {
 	u16 port_id; /* AFE port ID */
 	u8 active; /* track if this backend is enabled */
@@ -1706,6 +1710,11 @@ static int msm_routing_set_clearaudio_vpt_control_(
 	ac = q6asm_get_audio_client(fe_dai_map[idx][SESSION_TYPE_RX].strm_id);
 
 	uvalue16 = (uint16_t)ucontrol->value.integer.value[0];
+#ifdef CONFIG_SONY_SNDFX_HOOK
+	if (sndfx_enable_hook) {
+		uvalue16 = sndfx_enable;
+	}
+#endif
 	if (uvalue16 == 1) {
 		vol_module = ASM_MODULE_ID_CA_VPT;
 		pr_info("%s: send volume to ClearAudioVPT module\n", __func__);
@@ -1718,10 +1727,20 @@ static int msm_routing_set_clearaudio_vpt_control_(
 		return -EINVAL;
 	}
 	user_param.enable = uvalue16;
+#ifdef CONFIG_SONY_SNDFX_HOOK
+	if (sndfx_enable_hook) {
+		user_param.enable = sndfx_enable;
+	}
+#endif
 	pr_info("%s: send ClearAudioVPT enable(%d) to q6asm\n",
 		__func__, user_param.enable);
 
 	value32 = (int32_t)ucontrol->value.integer.value[1];
+#ifdef CONFIG_SONY_SNDFX_HOOK
+	if (clearstereo_hook) {
+		value32 = clearstereo_coef;
+	}
+#endif
 	if (value32 != CLEARSTEREO_OFF &&
 		(value32 < CLEARSTEREO_MIN ||
 		 value32 > CLEARSTEREO_MAX)) {
@@ -1735,6 +1754,11 @@ static int msm_routing_set_clearaudio_vpt_control_(
 
 	for (i = 0; i < BAND_NUM; i++) {
 		value16 = (int16_t)ucontrol->value.integer.value[i + 2];
+#ifdef CONFIG_SONY_SNDFX_HOOK
+		if (cleareq_hook) {
+			value16 = sndfx_hook_get_eqband(i);
+		}
+#endif
 		if (value16 < BAND_MIN_LEVEL ||
 			value16 > BAND_MAX_LEVEL) {
 			pr_err("%s: band[%d] value is invalid %d\n",
@@ -1749,6 +1773,11 @@ static int msm_routing_set_clearaudio_vpt_control_(
 		user_param.eq_coef[4], user_param.eq_coef[5]);
 
 	uvalue16 = (uint16_t)ucontrol->value.integer.value[8];
+#ifdef CONFIG_SONY_SNDFX_HOOK
+	if (clearvpt_hook) {
+		uvalue16 = clearvpt_mode;
+	}
+#endif
 	if (uvalue16 > VPT_MODE_MAX) {
 		pr_err("%s: mode value is invalid %d\n",
 			__func__, value16);
