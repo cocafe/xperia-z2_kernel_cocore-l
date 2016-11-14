@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: wl_cfg80211.h 449134 2014-01-16 07:59:17Z $
+ * $Id: wl_cfg80211.h 481432 2014-05-29 09:46:16Z $
  */
 
 #ifndef _wl_cfg80211_h_
@@ -907,7 +907,11 @@ extern s32 wl_cfg80211_set_p2p_ps(struct net_device *net, char* buf, int len);
 extern s32 wl_cfg80211_get_best_channels(struct net_device *dev, char* command,
 	int total_len);
 #endif /* WL_SUPPORT_AUTO_CHANNEL */
+#if defined(CUSTOMER_HW5)
+extern int wl_cfg80211_hang(struct net_device *dev, u16 reason, const char* function, const int line);
+#else
 extern int wl_cfg80211_hang(struct net_device *dev, u16 reason);
+#endif /* CUSTOMER_HW5 */
 extern s32 wl_mode_to_nl80211_iftype(s32 mode);
 int wl_cfg80211_do_driver_init(struct net_device *net);
 void wl_cfg80211_enable_trace(bool set, u32 level);

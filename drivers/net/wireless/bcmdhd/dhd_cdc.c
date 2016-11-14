@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd_cdc.c 434146 2013-11-05 13:06:16Z $
+ * $Id: dhd_cdc.c 481432 2014-05-29 09:46:16Z $
  *
  * BDC is like CDC, except it includes a header for data packets to convey
  * packet priority over the bus, and flags (e.g. to indicate checksum status
@@ -101,6 +101,9 @@ dhdcdc_cmplt(dhd_pub_t *dhd, uint32 id, uint32 len)
 
 	DHD_TRACE(("%s: Enter\n", __FUNCTION__));
 
+#if defined(CUSTOMER_HW5)
+	DHD_OS_WAKE_LOCK(dhd);
+#endif 
 
 	do {
 		ret = dhd_bus_rxctl(dhd->bus, (uchar*)&prot->msg, cdc_len);
@@ -108,6 +111,9 @@ dhdcdc_cmplt(dhd_pub_t *dhd, uint32 id, uint32 len)
 			break;
 	} while (CDC_IOC_ID(ltoh32(prot->msg.flags)) != id);
 
+#if defined(CUSTOMER_HW5)
+	DHD_OS_WAKE_UNLOCK(dhd);
+#endif 
 
 	return ret;
 }

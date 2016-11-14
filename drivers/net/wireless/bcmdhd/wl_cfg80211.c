@@ -23,7 +23,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: wl_cfg80211.c 454039 2014-02-07 08:00:57Z $
+ * $Id: wl_cfg80211.c 481724 2014-05-30 09:41:04Z $
  */
 /* */
 #include <typedefs.h>
@@ -1465,7 +1465,11 @@ wl_cfg80211_del_virtual_iface(struct wiphy *wiphy, bcm_struct_cfgdev *cfgdev)
 				struct net_device *ndev = wl_to_prmry_ndev(wl);
 				WL_ERR(("Firmware returned an error (%d) from p2p_ifdel"
 					"HANG Notification sent to %s\n", ret, ndev->name));
+#if defined(CUSTOMER_HW5)
+				net_os_send_hang_message(ndev, __FUNCTION__, __LINE__);
+#else
 				net_os_send_hang_message(ndev);
+#endif /* CUSTOMER_HW5 */
 			}
 			/* Wait for IF_DEL operation to be finished in firmware */
 			timeout = wait_event_interruptible_timeout(wl->netif_change_event,
@@ -2465,9 +2469,15 @@ scan_out:
 
 			bzero(&bssid, sizeof(bssid));
 			if ((ret = wldev_ioctl(ndev, WLC_GET_BSSID,
-				&bssid, ETHER_ADDR_LEN, false)) == 0)
-				WL_ERR(("FW is connected with " MACDBG "/n",
+				&bssid, ETHER_ADDR_LEN, false)) == 0) {
+				WL_ERR(("FW is connected with " MACDBG "\n",
 					MAC2STRDBG(bssid.octet)));
+#ifdef SCAN_EBUSY_RECOVERY
+					/* Disconnect to start reconnection. */
+					WL_ERR(("Trigger disconnection.\n"));
+					wl_cfg80211_disconnect(wiphy, ndev, DOT11_RC_DISASSOC_LEAVING);
+#endif /* SCAN_EBUSY_RECOVERY */
+			}
 			else
 				WL_ERR(("GET BSSID failed with %d\n", ret));
 
@@ -9030,6 +9040,9 @@ static void wl_scan_timeout(unsigned long data)
 	}
 	bzero(&msg, sizeof(wl_event_msg_t));
 	WL_ERR(("timer expired\n"));
+#if defined(CUSTOMER_HW5) && defined(DHD_DEBUG)
+	dhd_dbg_dump((struct dhd_pub*)wl->pub);
+#endif /* CUSTOMER_HW5 && DHD_DEBUG */
 	if (wl->escan_on) {
 		msg.event_type = hton32(WLC_E_ESCAN_RESULT);
 		msg.status = hton32(WLC_E_STATUS_TIMEOUT);
@@ -9257,6 +9270,11 @@ static s32 wl_escan_handler(struct wl_priv *wl, bcm_struct_cfgdev *cfgdev,
 	u32 i;
 	u8 *p2p_dev_addr = NULL;
 
+#ifdef ESCAN_TIMEOUT_RECOVERY
+#define ESCAN_TIMEOUT_LIMIT 1
+	static s32 escan_timeout_cnt = 0;
+#endif
+
 	WL_DBG((" enter event type : %d, status : %d \n",
 		ntoh32(e->event_type), ntoh32(e->status)));
 
@@ -9281,7 +9299,12 @@ static s32 wl_escan_handler(struct wl_priv *wl, bcm_struct_cfgdev *cfgdev,
 		goto exit;
 	}
 	escan_result = (wl_escan_result_t *)data;
-
+#ifdef ESCAN_TIMEOUT_RECOVERY
+	if ((status != WLC_E_STATUS_TIMEOUT) &&
+		(status != WLC_E_STATUS_ABORT) &&
+		(status != WLC_E_STATUS_PARTIAL))
+		escan_timeout_cnt = 0;
+#endif
 	if (status == WLC_E_STATUS_PARTIAL) {
 		WL_INFO(("WLC_E_STATUS_PARTIAL \n"));
 		if (!escan_result) {
@@ -9495,6 +9518,28 @@ static s32 wl_escan_handler(struct wl_priv *wl, bcm_struct_cfgdev *cfgdev,
 		WL_ERR(("escan_on[%d], reason[0x%x]\n", wl->escan_on, e->reason));
 		if (e->reason == 0xFFFFFFFF) {
 			wl_notify_escan_complete(wl, wl->escan_info.ndev, true, true);
+#ifdef ESCAN_TIMEOUT_RECOVERY
+			if (escan_timeout_cnt++ >= ESCAN_TIMEOUT_LIMIT) {
+				struct wiphy *wiphy = wl_to_wiphy(wl);
+				struct ether_addr bssid;
+				s32 ret = 0;
+				bzero(&bssid, sizeof(bssid));
+
+				WL_ERR(("escan timout %d times happened consecutively \n",
+					escan_timeout_cnt));
+
+				if ((ret = wldev_ioctl(ndev, WLC_GET_BSSID,
+					&bssid, ETHER_ADDR_LEN, false)) == 0) {
+					WL_ERR(("FW is connected with " MACDBG "\n",
+						MAC2STRDBG(bssid.octet)));
+					wl_cfg80211_disconnect(wiphy, ndev,
+						DOT11_RC_DISASSOC_LEAVING);
+				}
+				else
+					WL_ERR(("We have nothing to do\n"));
+				escan_timeout_cnt = 0;
+			}
+#endif /* ESCAN_TIMEOUT_RECOVERY */
 		}
 	} else {
 		WL_ERR(("unexpected Escan Event %d : abort\n", status));
@@ -10765,7 +10810,11 @@ s32 wl_cfg80211_up(void *para)
 }
 
 /* Private Event to Supplicant with indication that chip hangs */
+#if defined(CUSTOMER_HW5)
+int wl_cfg80211_hang(struct net_device *dev, u16 reason, const char* function, const int line)
+#else
 int wl_cfg80211_hang(struct net_device *dev, u16 reason)
+#endif /* CUSTOMER_HW5 */
 {
 	struct wl_priv *wl;
 #ifdef CONFIG_SONY_SUBSYS_RAMDUMP
@@ -10775,16 +10824,20 @@ int wl_cfg80211_hang(struct net_device *dev, u16 reason)
 	wl = wlcfg_drv_priv;
 
 	WL_ERR(("In : chip crash eventing\n"));
-
+#if defined(CUSTOMER_HW5)
+	if (function) {
+		WL_ERR(("From: %s, %d\n", function, line));
+	}
+#endif /* CUSTOMER_HW5 */
 #ifdef CONFIG_SONY_SUBSYS_RAMDUMP
 	dhd = (dhd_pub_t *)(wl->pub);
 	snprintf(buf, sizeof(buf),
-			"%s\n \
-			dhd_info Event HANG send up due to re=%d te=%d s=%d\n \
-			dongle_trap %s",
+			"%s\n"
+			"dhd_info Event HANG send up due to re=%d te=%d s=%d\n"
+			"dongle_trap %s\n From:%s, %d\n",
 			subsys.version_info,
 			dhd->rxcnt_timeout, dhd->txcnt_timeout, dhd->busstate,
-			subsys.crash_buf);
+			subsys.crash_buf, ((function != NULL) ? function : ""), line);
 	sony_subsys_notify_crash("bcm_wlan", buf);
 #endif
 	wl_add_remove_pm_enable_work(wl, FALSE, WL_HANDLER_DEL);

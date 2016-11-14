@@ -23,7 +23,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd_linux.c 454039 2014-02-07 08:00:57Z $
+ * $Id: dhd_linux.c 481432 2014-05-29 09:46:16Z $
  */
 
 #include <typedefs.h>
@@ -368,6 +368,11 @@ typedef struct dhd_info {
 #endif /* DHDTCPACK_SUPPRESS */
 
 	struct notifier_block pm_notifier;
+#if defined(CUSTOMER_HW5)
+#define FUNC_NAME_SIZE	(64)
+	char	func_name[FUNC_NAME_SIZE];
+	int		func_line;
+#endif /* CUSTOMER_HW5 */
 } dhd_info_t;
 
 /* Flag to indicate if we should download firmware on driver load */
@@ -1667,7 +1672,11 @@ dhd_start_xmit(struct sk_buff *skb, struct net_device *net)
 		/* Send Event when bus down detected during data session */
 		if (dhd->pub.up) {
 			DHD_ERROR(("%s: Event HANG sent up\n", __FUNCTION__));
+#if defined(CUSTOMER_HW5)
+			net_os_send_hang_message(net, __FUNCTION__, __LINE__);
+#else
 			net_os_send_hang_message(net);
+#endif /* CUSTOMER_HW5 */
 		}
 		DHD_OS_WAKE_UNLOCK(&dhd->pub);
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20))
@@ -2241,9 +2250,16 @@ dhd_dpc_thread(void *data)
 					/* process all data */
 					resched_cnt++;
 					if (resched_cnt > MAX_RESCHED_CNT) {
+#if defined(CUSTOMER_HW5)
+						static uint decimator = 0 ;
+						if (decimator++%256 == 0) {
+#endif /* CUSTOMER_HW5 */
 						DHD_ERROR(("%s Calling msleep to"
 							"let other processes run. \n",
 							__FUNCTION__));
+#if defined(CUSTOMER_HW5)
+						}
+#endif /* CUSTOMER_HW5 */
 						dhd->pub.dhd_bug_on = true;
 						resched_cnt = 0;
 						OSL_SLEEP(1);
@@ -2606,7 +2622,12 @@ dhd_ethtool(dhd_info_t *dhd, void *uaddr)
 }
 #endif /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 4, 2) */
 
+#if defined(CUSTOMER_HW5)
+static bool dhd_check_hang(struct net_device *net, dhd_pub_t *dhdp, int error,
+	const char* function, const int line)
+#else
 static bool dhd_check_hang(struct net_device *net, dhd_pub_t *dhdp, int error)
+#endif /* CUSTOMER_HW5 */
 {
 	dhd_info_t *dhd;
 
@@ -2628,7 +2649,15 @@ static bool dhd_check_hang(struct net_device *net, dhd_pub_t *dhdp, int error)
 		((dhdp->busstate == DHD_BUS_DOWN) && (!dhdp->dongle_reset))) {
 		DHD_ERROR(("%s: Event HANG send up due to  re=%d te=%d e=%d s=%d\n", __FUNCTION__,
 			dhdp->rxcnt_timeout, dhdp->txcnt_timeout, error, dhdp->busstate));
+#if defined(CUSTOMER_HW5)
+#if defined(DHD_DEBUG)
+		DHD_ERROR(("%s: %s, %d\n", __FUNCTION__, function, line));
+		dhd_dbg_dump(dhdp);
+#endif /* DHD_DEBUG */
+		net_os_send_hang_message(net, function, line);
+#else
 		net_os_send_hang_message(net);
+#endif /* CUSTOMER_HW5 */
 		return TRUE;
 	}
 	return FALSE;
@@ -2808,7 +2837,11 @@ int dhd_ioctl_process(dhd_pub_t *pub, int ifidx, dhd_ioctl_t *ioc)
 	bcmerror = dhd_wl_ioctl(pub, ifidx, (wl_ioctl_t *)ioc, buf, buflen);
 
 done:
+#if defined(CUSTOMER_HW5)
+	dhd_check_hang(net, pub, bcmerror, __FUNCTION__, __LINE__);
+#else
 	dhd_check_hang(net, pub, bcmerror);
+#endif /* CUSTOMER_HW5 */
 
 	if (!bcmerror && buf && ioc->buf) {
 		if (copy_to_user(ioc->buf, buf, buflen))
@@ -2869,7 +2902,11 @@ dhd_ioctl_entry(struct net_device *net, struct ifreq *ifr, int cmd)
 
 	if (cmd == SIOCDEVPRIVATE+1) {
 		ret = wl_android_priv_cmd(net, ifr, cmd);
+#if defined(CUSTOMER_HW5)
+		dhd_check_hang(net, &dhd->pub, ret, __FUNCTION__, __LINE__);
+#else
 		dhd_check_hang(net, &dhd->pub, ret);
+#endif /* CUSTOMER_HW5 */
 		DHD_OS_WAKE_UNLOCK(&dhd->pub);
 		return ret;
 	}
@@ -5817,24 +5854,40 @@ static void dhd_hang_process(struct work_struct *work)
 		wl_iw_send_priv_event(dev, "HANG");
 #endif
 #if defined(WL_CFG80211)
+#if defined(CUSTOMER_HW5)
+		wl_cfg80211_hang(dev, WLAN_REASON_UNSPECIFIED, dhd->func_name, dhd->func_line);
+#else
 		wl_cfg80211_hang(dev, WLAN_REASON_UNSPECIFIED);
+#endif /* CUSTOMER_HW5 */
 #endif
 	}
 }
 
+#if defined(CUSTOMER_HW5)
+int dhd_os_send_hang_message(dhd_pub_t *dhdp, const char* function, const int line)
+#else
 int dhd_os_send_hang_message(dhd_pub_t *dhdp)
+#endif /* CUSTOMER_HW5 */
 {
 	int ret = 0;
 	if (dhdp) {
 		if (!dhdp->hang_was_sent) {
 			dhdp->hang_was_sent = 1;
+#if defined(CUSTOMER_HW5)
+			strcpy(dhdp->info->func_name, function);
+			dhdp->info->func_line = line;
+#endif /* CUSTOMER_HW5 */
 			schedule_work(&dhdp->info->work_hang);
 		}
 	}
 	return ret;
 }
 
+#if defined(CUSTOMER_HW5)
+int net_os_send_hang_message(struct net_device *dev, const char* function, const int line)
+#else
 int net_os_send_hang_message(struct net_device *dev)
+#endif /* CUSTOMER_HW5 */
 {
 	dhd_info_t *dhd = *(dhd_info_t **)netdev_priv(dev);
 	int ret = 0;
@@ -5843,9 +5896,17 @@ int net_os_send_hang_message(struct net_device *dev)
 		/* Report FW problem when enabled */
 		if (dhd->pub.hang_report) {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27))
+#if defined(CUSTOMER_HW5)
+			ret = dhd_os_send_hang_message(&dhd->pub, function, line);
+#else
 			ret = dhd_os_send_hang_message(&dhd->pub);
+#endif /* CUSTOMER_HW5 */
+#else
+#if defined(CUSTOMER_HW5)
+			ret = wl_cfg80211_hang(dev, WLAN_REASON_UNSPECIFIED, function, line);
 #else
 			ret = wl_cfg80211_hang(dev, WLAN_REASON_UNSPECIFIED);
+#endif /* CUSTOMER_HW5 */
 #endif
 		} else {
 			DHD_ERROR(("%s: FW HANG ignored (for testing purpose) and not sent up\n",
@@ -6358,13 +6419,21 @@ int dhd_ioctl_entry_local(struct net_device *net, wl_ioctl_t *ioc, int cmd)
 
 	DHD_OS_WAKE_LOCK(&dhd->pub);
 	ret = dhd_wl_ioctl(&dhd->pub, ifidx, ioc, ioc->buf, ioc->len);
+#if defined(CUSTOMER_HW5)
+	dhd_check_hang(net, &dhd->pub, ret, __FUNCTION__, __LINE__);
+#else
 	dhd_check_hang(net, &dhd->pub, ret);
+#endif /* CUSTOMER_HW5 */
 	DHD_OS_WAKE_UNLOCK(&dhd->pub);
 
 	return ret;
 }
 
+#if defined(CUSTOMER_HW5)
+bool dhd_os_check_hang(dhd_pub_t *dhdp, int ifidx, int ret, const char* function, const int line)
+#else
 bool dhd_os_check_hang(dhd_pub_t *dhdp, int ifidx, int ret)
+#endif /* CUSTOMER_HW5 */
 {
 	struct net_device *net;
 
@@ -6373,7 +6442,11 @@ bool dhd_os_check_hang(dhd_pub_t *dhdp, int ifidx, int ret)
 		DHD_ERROR(("%s : Invalid index : %d\n", __FUNCTION__, ifidx));
 		return -EINVAL;
 	}
+#if defined(CUSTOMER_HW5)
+	return dhd_check_hang(net, dhdp, ret, function, line);
+#else
 	return dhd_check_hang(net, dhdp, ret);
+#endif /* CUSTOMER_HW5 */
 }
 
 

@@ -1,47 +1,4 @@
-MODNAME := wlan
-
-BCM_DIR :=	bcmdhd
-BCM_INC_DIR :=	drivers/net/wireless/bcmdhd/include
-BCM_SRC_DIR :=	drivers/net/wireless/bcmdhd
-
-BCM_INC := 	-I$(BCM_INC_DIR) \
-		-I$(BCM_SRC_DIR)
-
-BCM_OBJS := bcmsdh.o \
-		bcmsdh_linux.o \
-		bcmsdh_sdmmc.o \
-		bcmsdh_sdmmc_linux.o \
-		dhd_cdc.o \
-		dhd_cfg80211.o \
-		dhd_common.o \
-		dhd_custom_gpio.o \
-		dhd_ip.o \
-		dhd_linux.o \
-		dhd_linux_sched.o \
-		dhd_sdio.o \
-		dhd_pno.o \
-		dhd_wlfc.o \
-		aiutils.o \
-		bcmevent.o \
-		bcmutils.o \
-		bcmwifi_channels.o \
-		hndpmu.o \
-		linux_osl.o \
-		sbutils.o \
-		siutils.o \
-		wldev_common.o \
-		wl_android.o \
-		wl_cfg80211.o \
-		wl_cfgp2p.o \
-		wl_linux_mon.o
-
-LINUX_INC :=	-Iinclude/linux
-
-INCS :=		$(BCM_INC)
-
-OBJS :=		$(BCM_OBJS)
-
-EXTRA_CFLAGS += $(INCS)
+# bcmdhd
 
 #####################
 # SDIO Basic feature
@@ -58,10 +15,10 @@ DHDCFLAGS = -Wall -Wstrict-prototypes -Dlinux -DLINUX -DBCMDRIVER             \
 ####################
 # Common feature
 ####################
-DHDCFLAGS += -DCUSTOMER_HW2
+DHDCFLAGS += -DCUSTOMER_HW2 -DCUSTOMER_HW5
 DHDCFLAGS += -DWL_CFG80211 -DROAM_ENABLE -DVSDB -DPROP_TXSTATUS	\
 	 -DWL_SUPPORT_AUTO_CHANNEL -DSUPPORT_HIDDEN_AP 	\
-	 -DSUPPORT_AMPDU_MPDU_CMD	-DSUPPORT_PM2_ONLY	\
+	 -DSUPPORT_AMPDU_MPDU_CMD -DSUPPORT_PM2_ONLY	\
 	 -DWL_ENABLE_P2P_IF -DWL_CFG80211_STA_EVENT -DWL_IFACE_COMB_NUM_CHANNELS
 
 # Debug
@@ -89,6 +46,13 @@ ifeq ($(CONFIG_BRCM_CCX),y)
   DHDCFLAGS += -DBCMCCX
 endif
 
+ifeq ($(CONFIG_HAS_WAKELOCK),)
+  DHDCFLAGS += -DCONFIG_HAS_WAKELOCK
+endif
+
+# Disconnection after scan failure
+DHDCFLAGS += -DSCAN_EBUSY_RECOVERY
+DHDCFLAGS += -DESCAN_TIMEOUT_RECOVERY
 
 # For Scan result patch
 DHDCFLAGS += -DESCAN_RESULT_PATCH
@@ -124,9 +88,10 @@ DHDCFLAGS += -DUSE_INITIAL_SHORT_DWELL_TIME
 
 # custom specific value define
 # For special PNO Event keep wake lock for 10sec
-DHDCFLAGS += -DCUSTOM_PNO_EVENT_LOCK_xTIME=10
+DHDCFLAGS += -DCUSTOM_PNO_EVENT_LOCK_xTIME=10 
 # set keep alive period
 DHDCFLAGS += -DCUSTOM_KEEP_ALIVE_SETTING=55000
+# set roam setting values
 DHDCFLAGS += -DCUSTOM_ROAM_TRIGGER_SETTING=-75
 DHDCFLAGS += -DCUSTOM_ROAM_DELTA_SETTING=10
 
@@ -134,14 +99,6 @@ ifeq ($(CONFIG_BCMDHD_INSMOD_NO_FW_LOAD),y)
  DHDCFLAGS += -DENABLE_INSMOD_NO_FW_LOAD
 endif
 
-# For WiFi card detection
-DHDCFLAGS += -DCONFIG_WIFI_CONTROL_FUNC
-
-# read custom mac address function
-DHDCFLAGS += -DGET_CUSTOM_MAC_ENABLE
-
-# WAPI
-DHDCFLAGS += -DBCMWAPI_WPI -DBCMWAPI_WAI
 
 #########################
 # Chip dependent feature
@@ -182,28 +139,20 @@ endif
   DHDCFLAGS += -DDISABLE_WL_FRAMEBURST_SOFTAP
 endif
 
-  DHDCFLAGS += -DSEMC_WLAN_BAND=WLC_BAND_2G
-
-ifneq ($(CONFIG_SOMC_WLAN_BCN_TIMEOUT),)
-  DHDCFLAGS += -DSOMC_WLAN_BCN_TIMEOUT=$(CONFIG_SOMC_WLAN_BCN_TIMEOUT)
-endif
-
-DHDCFLAGS += -DSOMC_MAX_ASSOC_NUM=10
-
-DHDCFLAGS += -DSOMC_MIRACAST_STATISTICS
-
-# Default Listen Interval in Beacons
-ifneq ($(CONFIG_SOMC_WLAN_LISTEN_INTERVAL),)
-  DHDCFLAGS += -DCUSTOM_LISTEN_INTERVAL=$(CONFIG_SOMC_WLAN_LISTEN_INTERVAL)
-endif
 
 #EXTRA_LDFLAGS += --strip-debug
-EXTRA_CFLAGS += -DDHD_DEBUG
+EXTRA_CFLAGS += $(DHDCFLAGS) -DDHD_DEBUG
 EXTRA_CFLAGS += -DSRCBASE=\"$(src)\"
+EXTRA_CFLAGS += -I$(src)/include/ -I$(src)/
+KBUILD_CFLAGS += -I$(LINUXDIR)/include -I$(shell pwd)
 
-KBUILD_CPPFLAGS += $(DHDCFLAGS)
+DHDOFILES = bcmsdh.o bcmsdh_linux.o bcmsdh_sdmmc.o bcmsdh_sdmmc_linux.o \
+	dhd_cdc.o dhd_cfg80211.o dhd_common.o dhd_custom_gpio.o dhd_ip.o    \
+	dhd_linux.o dhd_linux_sched.o dhd_sdio.o dhd_pno.o dhd_wlfc.o aiutils.o       \
+	bcmevent.o bcmutils.o bcmwifi_channels.o hndpmu.o linux_osl.o       \
+	sbutils.o siutils.o wldev_common.o wl_android.o wl_cfg80211.o       \
+	wl_cfgp2p.o wl_linux_mon.o
 
-# Module information used by KBuild framework
-obj-$(CONFIG_BCMDHD) += $(MODNAME).o
+obj-$(CONFIG_BCMDHD) += bcmdhd.o
+bcmdhd-objs += $(DHDOFILES)
 
-$(MODNAME)-y := $(OBJS)

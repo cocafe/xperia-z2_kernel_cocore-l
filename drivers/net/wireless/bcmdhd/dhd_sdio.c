@@ -22,7 +22,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd_sdio.c 454726 2014-02-11 17:18:49Z $
+ * $Id: dhd_sdio.c 481432 2014-05-29 09:46:16Z $
  */
 
 #include <typedefs.h>
@@ -66,6 +66,10 @@
 #include <dhd_dbg.h>
 #include <dhdioctl.h>
 #include <sdiovar.h>
+
+#if defined(CUSTOMER_HW5)
+#include <linux/jiffies.h>
+#endif /* CUSTOMER_HW5 */
 
 bool dhd_mp_halting(dhd_pub_t *dhdp);
 extern void bcmsdh_waitfor_iodrain(void *sdh);
@@ -205,6 +209,9 @@ typedef struct dhd_console {
 #define OVERFLOW_BLKSZ512_MES		80
 
 #define CC_PMUCC3	(0x3)
+#if defined(CUSTOMER_HW5)
+#define DHD_DPC_LOG_SZ	(256)
+#endif /* CUSTOMER_HW5 */
 /* Private data for SDIO bus interaction */
 typedef struct dhd_bus {
 	dhd_pub_t	*dhd;
@@ -241,6 +248,9 @@ typedef struct dhd_bus {
 	uint8		flowcontrol;		/* per prio flow control bitmask */
 	uint8		tx_seq;			/* Transmit sequence number (next) */
 	uint8		tx_max;			/* Maximum transmit sequence allowed */
+#if defined(CUSTOMER_HW5)
+	uint32		tx_upd_time;	/* Up-time at the last tx_max update. */
+#endif /* CUSTOMER_HW5 */
 
 	uint8		hdrbuf[MAX_HDR_READ + DHD_SDALIGN];
 	uint8		*rxhdr;			/* Header of current rx frame (in hdrbuf) */
@@ -375,6 +385,11 @@ typedef struct dhd_bus {
 	uint8		glom_mode;	/* Glom mode - 0-copy mode, 1 - Multi-descriptor mode */
 	uint32		glomsize;	/* Glom size limitation */
 #endif
+#if defined(CUSTOMER_HW5)
+	char		dpc_log_previous[DHD_DPC_LOG_SZ];
+	char		dpc_log_current[DHD_DPC_LOG_SZ];
+	int			dpc_log_loops;
+#endif /* CUSTOMER_HW5 */
 } dhd_bus_t;
 
 /* clkstate */
@@ -1176,7 +1191,12 @@ dhdsdio_htclk(dhd_bus_t *bus, bool on, bool pendok)
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
 			else if (ht_avail_error == HT_AVAIL_ERROR_MAX) {
+#if defined(CUSTOMER_HW5)
+				DHD_ERROR(("%s: HT Avail request error maxed: %d\n", __FUNCTION__, err));
+				dhd_os_send_hang_message(bus->dhd, __FUNCTION__, __LINE__);
+#else
 				dhd_os_send_hang_message(bus->dhd);
+#endif /* CUSTOMER_HW5 */
 			}
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27) */
 			return BCME_ERROR;
@@ -1460,7 +1480,12 @@ dhdsdio_bussleep(dhd_bus_t *bus, bool sleep)
 	/* Going to sleep: set the alarm and turn off the lights... */
 	if (sleep) {
 		/* Don't sleep if something is pending */
+#if defined(CUSTOMER_HW5)
+		if (bus->dpc_sched || bus->rxskip || pktq_len(&bus->txq) || bus->readframes ||
+			bus->ctrl_frame_stat)
+#else
 		if (bus->dpc_sched || bus->rxskip || pktq_len(&bus->txq))
+#endif 
 			return BCME_BUSY;
 
 
@@ -4644,6 +4669,9 @@ dhd_bus_stop(struct dhd_bus *bus, bool enforce_mutex)
 	bus->rxskip = FALSE;
 	bus->tx_seq = bus->rx_seq = 0;
 
+#if defined(CUSTOMER_HW5)
+	bus->tx_upd_time = jiffies_to_msecs(jiffies);
+#endif /* CUSTOMER_HW5 */
 	bus->tx_max = 4;
 
 	if (enforce_mutex)
@@ -5220,6 +5248,9 @@ dhdsdio_rxglom(dhd_bus_t *bus, uint8 rxseq)
 			           __FUNCTION__, txmax, bus->tx_seq));
 			txmax = bus->tx_max;
 		}
+#if defined(CUSTOMER_HW5)
+		bus->tx_upd_time = jiffies_to_msecs(jiffies);
+#endif /* CUSTOMER_HW5 */
 		bus->tx_max = txmax;
 
 		/* Remove superframe header, remember offset */
@@ -5700,6 +5731,9 @@ dhdsdio_readframes(dhd_bus_t *bus, uint maxframes, bool *finished)
 						__FUNCTION__, txmax, bus->tx_seq));
 					txmax = bus->tx_max;
 			}
+#if defined(CUSTOMER_HW5)
+			bus->tx_upd_time = jiffies_to_msecs(jiffies);
+#endif /* CUSTOMER_HW5 */
 			bus->tx_max = txmax;
 
 #ifdef DHD_DEBUG
@@ -5857,6 +5891,9 @@ dhdsdio_readframes(dhd_bus_t *bus, uint maxframes, bool *finished)
 			           __FUNCTION__, txmax, bus->tx_seq));
 			txmax = bus->tx_max;
 		}
+#if defined(CUSTOMER_HW5)
+		bus->tx_upd_time = jiffies_to_msecs(jiffies);
+#endif /* CUSTOMER_HW5 */
 		bus->tx_max = txmax;
 
 		/* Call a separate function for control frames */
@@ -6139,6 +6176,9 @@ dhdsdio_dpc(dhd_bus_t *bus)
 	bool rxdone = TRUE;		  /* Flag for no more read data */
 	bool resched = FALSE;	  /* Flag indicating resched wanted */
 	bool is_resched_by_readframe = FALSE;
+#if defined(CUSTOMER_HW5)
+	bool bkp_cfs = FALSE;
+#endif /* CUSTOMER_HW5 */
 	DHD_TRACE(("%s: Enter\n", __FUNCTION__));
 
 	dhd_os_sdlock(bus->dhd);
@@ -6332,6 +6372,9 @@ clkwait:
 	dhd_wlfc_trigger_pktcommit(bus->dhd);
 #endif
 
+#if defined(CUSTOMER_HW5)
+	bkp_cfs = bus->ctrl_frame_stat;
+#endif /* CUSTOMER_HW5 */
 	if (TXCTLOK(bus) && bus->ctrl_frame_stat && (bus->clkstate == CLK_AVAIL))
 		dhdsdio_sendpendctl(bus);
 
@@ -6387,12 +6430,33 @@ exit:
 
 	dhd_os_sdunlock(bus->dhd);
 	if (bus->dhd->dhd_bug_on) {
+#if defined(CUSTOMER_HW5)
+		sprintf(bus->dpc_log_current, "%s: resched = %d ctrl_frame_stat = %d intstatus 0x%08x"
+				" ipend = %d pktq_mlen = %d is_resched_by_readframe = %d "
+				" TXCTLOK = %d, cfs = %d, clkstate = %d\n",
+				__FUNCTION__, resched, bus->ctrl_frame_stat,
+				bus->intstatus, bus->ipend,
+				pktq_mlen(&bus->txq, ~bus->flowcontrol), is_resched_by_readframe,
+				TXCTLOK(bus), bkp_cfs, bus->clkstate);
+		if (strcmp(bus->dpc_log_previous, bus->dpc_log_current) == 0) {
+			/* Same log */
+			bus->dpc_log_loops++;
+		} else {
+			if (bus->dpc_log_loops) {
+				DHD_ERROR(("(%d) %s\n", bus->dpc_log_loops, bus->dpc_log_previous));
+			}
+			DHD_ERROR(("%s\n", bus->dpc_log_current));
+			strcpy(bus->dpc_log_previous, bus->dpc_log_current);
+			bus->dpc_log_loops = 0;
+		}
+#else
 		DHD_ERROR(("%s: resched = %d ctrl_frame_stat = %d intstatus 0x%08x"
 			" ipend = %d pktq_mlen = %d is_resched_by_readframe = %d \n",
 			__FUNCTION__, resched, bus->ctrl_frame_stat,
 			bus->intstatus, bus->ipend,
 			pktq_mlen(&bus->txq, ~bus->flowcontrol), is_resched_by_readframe));
 
+#endif /* CUSTOMER_HW5 */
 		bus->dhd->dhd_bug_on = FALSE;
 	}
 	return resched;
@@ -7538,6 +7602,11 @@ dhdsdio_probe_init(dhd_bus_t *bus, osl_t *osh, void *sdh)
 		          __FUNCTION__, (bus->sd_rxchain ? "supports" : "does not support")));
 	}
 	bus->use_rxchain = (bool)bus->sd_rxchain;
+#if defined(CUSTOMER_HW5)
+	memset(bus->dpc_log_previous,	0, sizeof(bus->dpc_log_previous));
+	memset(bus->dpc_log_current, 0, sizeof(bus->dpc_log_current));
+	bus->dpc_log_loops = 0;
+#endif /* CUSTOMER_HW5 */
 
 	return TRUE;
 }
@@ -8735,3 +8804,16 @@ dhd_get_chipid(dhd_pub_t *dhd)
 	else
 		return 0;
 }
+
+#if defined(CUSTOMER_HW5) && defined(DHD_DEBUG)
+int
+dhd_dbg_dump(dhd_pub_t *dhd)
+{
+		dhd_bus_t *bus = dhd->bus;
+		DHD_ERROR(("in_suspend:%d rf:%d cfs:%d intr:%d dis:%d slp:%d\n", dhd->in_suspend, bus->readframes,
+			bus->ctrl_frame_stat, bus->intr, bus->intdis, bus->sleeping));
+		DHD_ERROR(("last dpc_loop:%s (%s - %d) \n", bus->dpc_log_current, bus->dpc_log_previous, bus->dpc_log_loops));
+		DHD_ERROR(("TXCTL, update:%u ms max:%d ,seq:%d \n", bus->tx_upd_time, bus->tx_max, bus->tx_seq));
+		return 0;
+}
+#endif /* CUSTOMER_HW5 && defined(DHD_DEBUG) */

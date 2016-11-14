@@ -25,7 +25,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd.h 454039 2014-02-07 08:00:57Z $
+ * $Id: dhd.h 481432 2014-05-29 09:46:16Z $
  */
 
 /****************
@@ -570,8 +570,13 @@ extern int dhd_custom_get_mac_address(unsigned char *buf);
 extern void dhd_os_sdunlock_sndup_rxq(dhd_pub_t * pub);
 extern void dhd_os_sdlock_eventq(dhd_pub_t * pub);
 extern void dhd_os_sdunlock_eventq(dhd_pub_t * pub);
+#if defined(CUSTOMER_HW5)
+extern bool dhd_os_check_hang(dhd_pub_t *dhdp, int ifidx, int ret, const char* function, const int line);
+extern int dhd_os_send_hang_message(dhd_pub_t *dhdp, const char* function, const int line);
+#else
 extern bool dhd_os_check_hang(dhd_pub_t *dhdp, int ifidx, int ret);
 extern int dhd_os_send_hang_message(dhd_pub_t *dhdp);
+#endif /* CUSTOMER_HW5 */
 extern void dhd_set_version_info(dhd_pub_t *pub, char *fw);
 
 #if defined(KEEP_ALIVE)
@@ -619,7 +624,11 @@ extern int dhd_timeout_expired(dhd_timeout_t *tmo);
 extern int dhd_ifname2idx(struct dhd_info *dhd, char *name);
 extern int dhd_net2idx(struct dhd_info *dhd, struct net_device *net);
 extern struct net_device * dhd_idx2net(void *pub, int ifidx);
+#if defined(CUSTOMER_HW5)
+extern int net_os_send_hang_message(struct net_device *dev, const char* function, const int line);
+#else
 extern int net_os_send_hang_message(struct net_device *dev);
+#endif /* CUSTOMER_HW5 */
 extern int wl_host_event(dhd_pub_t *dhd_pub, int *idx, void *pktdata,
                          wl_event_msg_t *, void **data_ptr);
 extern void wl_event_to_host_order(wl_event_msg_t * evt);
@@ -1025,5 +1034,10 @@ void dhd_set_bus_state(void *bus, uint32 state);
 
 /* Remove proper pkts(either one no-frag pkt or whole fragmented pkts) */
 extern bool dhd_prec_drop_pkts(osl_t *osh, struct pktq *pq, int prec);
+
+
+#if defined(CUSTOMER_HW5) && defined(DHD_DEBUG)
+extern int dhd_dbg_dump(dhd_pub_t *dhd);
+#endif /* CUSTOMER_HW5 && DHD_DEBUG */
 
 #endif /* _dhd_h_ */
