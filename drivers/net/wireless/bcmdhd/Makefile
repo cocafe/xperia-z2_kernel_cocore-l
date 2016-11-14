@@ -99,6 +99,14 @@ ifeq ($(CONFIG_BCMDHD_INSMOD_NO_FW_LOAD),y)
  DHDCFLAGS += -DENABLE_INSMOD_NO_FW_LOAD
 endif
 
+# For WiFi card detection
+DHDCFLAGS += -DCONFIG_WIFI_CONTROL_FUNC
+
+# read custom mac address function
+DHDCFLAGS += -DGET_CUSTOM_MAC_ENABLE
+
+# WAPI
+DHDCFLAGS += -DBCMWAPI_WPI -DBCMWAPI_WAI
 
 #########################
 # Chip dependent feature
@@ -139,6 +147,23 @@ endif
   DHDCFLAGS += -DDISABLE_WL_FRAMEBURST_SOFTAP
 endif
 
+ifneq ($(CONFIG_SEMC_WLAN_BAND),)
+  DHDCFLAGS += -DSEMC_WLAN_BAND=WLC_BAND_2G
+endif
+
+ifneq ($(CONFIG_SOMC_WLAN_BCN_TIMEOUT),)
+  DHDCFLAGS += -DSOMC_WLAN_BCN_TIMEOUT=$(CONFIG_SOMC_WLAN_BCN_TIMEOUT)
+endif
+
+DHDCFLAGS += -DSOMC_MAX_ASSOC_NUM=10
+
+DHDCFLAGS += -DSOMC_MIRACAST_STATISTICS
+
+# Default Listen Interval in Beacons
+ifneq ($(CONFIG_SOMC_WLAN_LISTEN_INTERVAL),)
+  DHDCFLAGS += -DCUSTOM_LISTEN_INTERVAL=$(CONFIG_SOMC_WLAN_LISTEN_INTERVAL)
+endif
+
 
 #EXTRA_LDFLAGS += --strip-debug
 EXTRA_CFLAGS += $(DHDCFLAGS) -DDHD_DEBUG
@@ -153,6 +178,6 @@ DHDOFILES = bcmsdh.o bcmsdh_linux.o bcmsdh_sdmmc.o bcmsdh_sdmmc_linux.o \
 	sbutils.o siutils.o wldev_common.o wl_android.o wl_cfg80211.o       \
 	wl_cfgp2p.o wl_linux_mon.o
 
-obj-$(CONFIG_BCMDHD) += bcmdhd.o
-bcmdhd-objs += $(DHDOFILES)
+obj-$(CONFIG_BCMDHD) += wlan.o
+wlan-objs += $(DHDOFILES)
 

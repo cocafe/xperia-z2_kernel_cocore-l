@@ -40,9 +40,10 @@ config BCMDHD_NVRAM_PATH
 config BCMDHD_INSMOD_NO_FW_LOAD
 	bool "Enable delayed firmware load"
 	depends on BCMDHD
-	default n
+	default y
 	---help---
 	Enable delayes firmware
+	Enable this feature to communicate with android system command
 
 config DHD_USE_STATIC_BUF
 	bool "Enable memory preallocation"
