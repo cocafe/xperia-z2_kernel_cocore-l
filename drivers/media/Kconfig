@@ -113,7 +113,7 @@ source "drivers/media/platform/Kconfig"
 # Tuner drivers for DVB and V4L
 #
 
-source "drivers/media/common/tuners/Kconfig"
+# source "drivers/media/common/tuners/Kconfig"
 
 #
 # Video/Radio/Hybrid adapters
