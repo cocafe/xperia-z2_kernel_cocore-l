@@ -506,6 +506,7 @@ int hidraw_report_event(struct hid_device *hid, u8 *data, int len)
 {
 	struct hidraw *dev = hid->hidraw;
 	struct hidraw_list *list;
+	int new_head;
 	int ret = 0;
 
 	list_for_each_entry(list, &dev->list, node) {
@@ -515,7 +516,7 @@ int hidraw_report_event(struct hid_device *hid, u8 *data, int len)
 			break;
 #endif
 
-		int new_head = (list->head + 1) & (HIDRAW_BUFFER_SIZE - 1);
+		new_head = (list->head + 1) & (HIDRAW_BUFFER_SIZE - 1);
 
 		if (new_head == list->tail)
 			continue;
