@@ -792,6 +792,7 @@ static ssize_t show_target_loads(
 	struct kobject *kobj, struct attribute *attr, char *buf)
 {
 	int i;
+	ssize_t rc = 0;
 	ssize_t ret = 0;
 	unsigned long flags;
 
@@ -801,7 +802,8 @@ static ssize_t show_target_loads(
 		ret += sprintf(buf + ret, "%u%s", target_loads[i],
 			       i & 0x1 ? ":" : " ");
 
-	ret += sprintf(buf + --ret, "\n");
+	rc = sprintf(buf + --ret, "\n");
+	ret += rc;
 	spin_unlock_irqrestore(&target_loads_lock, flags);
 	return ret;
 }
@@ -835,6 +837,7 @@ static ssize_t show_above_hispeed_delay(
 	struct kobject *kobj, struct attribute *attr, char *buf)
 {
 	int i;
+	ssize_t rc = 0;
 	ssize_t ret = 0;
 	unsigned long flags;
 
@@ -844,7 +847,8 @@ static ssize_t show_above_hispeed_delay(
 		ret += sprintf(buf + ret, "%u%s", above_hispeed_delay[i],
 			       i & 0x1 ? ":" : " ");
 
-	ret += sprintf(buf + --ret, "\n");
+	rc = sprintf(buf + --ret, "\n");
+	ret += rc;
 	spin_unlock_irqrestore(&above_hispeed_delay_lock, flags);
 	return ret;
 }
