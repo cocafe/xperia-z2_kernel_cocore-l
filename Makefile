@@ -374,7 +374,7 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Wno-format-security \
 		   -fno-delete-null-pointer-checks \
 		   -mfpu=neon-vfpv4 -mvectorize-with-neon-quad -funsafe-math-optimizations \
-		   -ftree-vectorize -pipe
+		   -ftree-vectorize -pipe -Wno-misleading-indentation
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_AFLAGS   := -D__ASSEMBLY__
