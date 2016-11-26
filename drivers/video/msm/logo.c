@@ -33,14 +33,20 @@
 #define fb_size(fb)	(fb_width(fb) * fb_height(fb) * fb_depth(fb))
 #define INIT_IMAGE_FILE "/logo.rle"
 
+#define BOOTLOADER_SPLASH_OVERRIDE
+
 static bool display_on_in_boot;
 
 static int __init continous_splash_setup(char *str)
 {
+	#ifndef BOOTLOADER_SPLASH_OVERRIDE
 	if (!str)
 		return 0;
+
 	if (!strncmp(str, "on", 2))
 		display_on_in_boot = true;
+	#endif
+
 	return 0;
 }
 __setup("display_status=", continous_splash_setup);
