@@ -1,0 +1,55 @@
+ccflags-y += -DMHL_VERSION_MAJOR="0x30"
+ccflags-y += -DMHL_VERSION_MINOR="00"
+# ccflags-y += -DMHL_SUPPORT_UNPOWERED_DONGLE
+
+ccflags-y += -DSUPPORT_CHG_TIMING
+
+EXTRA_CFLAGS += -fno-pic
+
+#SIMG original value for Drive Strength
+SOMC_CFG_MHL2_DS_DP_CTL1 = 0xFE
+SOMC_CFG_MHL2_DS_DP_CTL6 = 0x2A
+SOMC_CFG_MHL2_DS_DP_CTL7 = 0x08
+SOMC_CFG_MHL2_DS_DP_CTL8 = 0x00
+SOMC_CFG_MHL2_DS_COC_CTL1 = 0x07
+SOMC_CFG_MHL3_DS_DP_CTL1 = 0xA2
+SOMC_CFG_MHL3_DS_DP_CTL6 = 0x02
+SOMC_CFG_MHL3_DS_DP_CTL7 = 0x08
+SOMC_CFG_MHL3_DS_DP_CTL8 = 0x00
+SOMC_CFG_MHL3_DS_COC_CTL1 = 0xBC
+
+ccflags-y += -DMHL2_DRIVE_STRENGTH_DP_CTL1="$(SOMC_CFG_MHL2_DS_DP_CTL1)"
+ccflags-y += -DMHL2_DRIVE_STRENGTH_DP_CTL6="$(SOMC_CFG_MHL2_DS_DP_CTL6)"
+ccflags-y += -DMHL2_DRIVE_STRENGTH_DP_CTL7="$(SOMC_CFG_MHL2_DS_DP_CTL7)"
+ccflags-y += -DMHL2_DRIVE_STRENGTH_DP_CTL8="$(SOMC_CFG_MHL2_DS_DP_CTL8)"
+ccflags-y += -DMHL2_DRIVE_STRENGTH_COC_CTL1="$(SOMC_CFG_MHL2_DS_COC_CTL1)"
+ccflags-y += -DMHL3_DRIVE_STRENGTH_DP_CTL1="$(SOMC_CFG_MHL3_DS_DP_CTL1)"
+ccflags-y += -DMHL3_DRIVE_STRENGTH_DP_CTL6="$(SOMC_CFG_MHL3_DS_DP_CTL6)"
+ccflags-y += -DMHL3_DRIVE_STRENGTH_DP_CTL7="$(SOMC_CFG_MHL3_DS_DP_CTL7)"
+ccflags-y += -DMHL3_DRIVE_STRENGTH_DP_CTL8="$(SOMC_CFG_MHL3_DS_DP_CTL8)"
+ccflags-y += -DMHL3_DRIVE_STRENGTH_COC_CTL1="$(SOMC_CFG_MHL3_DS_COC_CTL1)"
+
+obj-m +=  mhl_sii8620_8061_drv.o
+
+CFG_MHL_BIST = true
+
+#BIST Support
+ifeq ($(CFG_MHL_BIST),true)
+ccflags-y += -DMHL_BIST
+mhl_sii8620_8061_drv-objs := mhl_sii8620_bist.o
+endif
+
+# y: Upstream HPD is push pull mode.
+# n: Upstream HPD is open drain mode.
+# export SOMC_CFG_MHL_HPD_PUSH_PULL = y
+
+# y: Activate upstream HPD is High.
+# n: Activate upstream HPD is Low.
+# export SOMC_CFG_MHL_HPD_ACTIVE_HIGH = y
+
+ccflags-y += -DMHL_UPSTREAM_HPD_PUSH_PULL
+ccflags-y += -DMHL_HPD_UPSTREAM_HDMI_IS_HIGH_TRIGGER
+
+ccflags-y += -DMHL_DEVICE_ID="0x05"
+
+mhl_sii8620_8061_drv-objs += mhl_driver.o mhl_tx.o mhl_sii8620_8061_device.o mhl_sii8620_device_edid.o mhl_lib_edid.o mhl_cbus_control.o mhl_tx_rcp.o mhl_lib_infoframe.o mhl_lib_timer.o mhl_cbus_write_burst.o mhl_support_unpowered_dongle.o
