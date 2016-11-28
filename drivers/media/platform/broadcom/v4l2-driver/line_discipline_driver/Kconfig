@@ -1,0 +1,6 @@
+config BROADCOM_V4L2_HCI_LDISC
+	tristate "broadcom v4l2 hci ldisc driver"
+	depends on BROADCOM_V4L2_DRIVER
+	default m
+	help
+	  Enable broadcom v4l2 hci ldisc driver supports

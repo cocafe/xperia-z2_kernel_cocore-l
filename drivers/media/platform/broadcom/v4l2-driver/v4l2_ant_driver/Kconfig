@@ -1,0 +1,7 @@
+config BROADCOM_V4L2_ANT_DRV
+	tristate "broadcom v4l2 ant driver"
+	depends on BROADCOM_V4L2_DRIVER
+	select BROADCOM_V4L2_HCI_LDISC
+	default m
+	help
+	  Enable broadcom v4l2 ant driver supports

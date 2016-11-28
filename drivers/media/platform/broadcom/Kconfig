@@ -1,0 +1,13 @@
+#
+# Broadcom V4L2 Drivers
+#
+
+comment "Broadcom V4L2 Drivers"
+
+config BROADCOM_V4L2_DRIVER
+	bool "broadcom v4l2 drivers"
+	default n
+	help
+	  Enable broadcom v4l2 drivers supports
+
+source "drivers/media/platform/broadcom/v4l2-driver/Kconfig"
