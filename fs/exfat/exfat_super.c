@@ -108,6 +108,8 @@
 
 #include "exfat_super.h"
 
+#define EXFAT_TUXERA_TRICK
+
 static struct kmem_cache *exfat_inode_cachep;
 
 static int exfat_default_codepage = DEFAULT_CODEPAGE;
@@ -2211,6 +2213,14 @@ enum {
 #if EXFAT_CONFIG_DISCARD
 	Opt_discard,
 #endif
+#ifdef EXFAT_TUXERA_TRICK
+	Opt_utf8,
+	Opt_nls,
+	Opt_min_prealloc_size,
+	Opt_max_prealloc_size,
+	Opt_readahead,
+	Opt_fail_safe
+#endif
 };
 
 static const match_table_t exfat_tokens = {
@@ -2230,6 +2240,14 @@ static const match_table_t exfat_tokens = {
 	{Opt_err_ro, "errors=remount-ro"},
 #if EXFAT_CONFIG_DISCARD
 	{Opt_discard, "discard"},
+#endif
+#ifdef EXFAT_TUXERA_TRICK
+	{Opt_nls, "utf8"},
+	{Opt_nls, "nls=%s"},
+	{Opt_min_prealloc_size, "min_prealloc_size=%s"},
+	{Opt_max_prealloc_size, "max_prealloc_size=%s"},
+	{Opt_readahead, "readahead=%s"},
+	{Opt_fail_safe, "fail_safe"},
 #endif
 	{Opt_err, NULL}
 };
@@ -2258,6 +2276,8 @@ static int parse_options(char *options, int silent, int *debug,
 
 	if (!options)
 		goto out;
+
+	pr_err("[EXFAT] %s: %s\n", __func__, options);
 
 	while ((p = strsep(&options, ",")) != NULL) {
 		int token;
@@ -2327,6 +2347,15 @@ static int parse_options(char *options, int silent, int *debug,
 #if EXFAT_CONFIG_DISCARD
 		case Opt_discard:
 			opts->discard = 1;
+			break;
+#endif
+#ifdef EXFAT_TUXERA_TRICK
+		case Opt_utf8:
+		case Opt_nls:
+		case Opt_min_prealloc_size:
+		case Opt_max_prealloc_size:
+		case Opt_readahead:
+		case Opt_fail_safe:
 			break;
 #endif
 		default:
@@ -2583,7 +2612,11 @@ static void exfat_debug_kill_sb(struct super_block *sb)
 
 static struct file_system_type exfat_fs_type = {
 	.owner       = THIS_MODULE,
+#ifdef EXFAT_TUXERA_TRICK
+	.name        = "texfat",
+#else
 	.name        = "exfat",
+#endif
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37)
 	.get_sb      = exfat_get_sb,
 #else
