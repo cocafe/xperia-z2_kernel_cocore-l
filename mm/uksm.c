@@ -4658,7 +4658,7 @@ again:
 			struct anon_vma_chain *vmac;
 			struct vm_area_struct *vma;
 
-			anon_vma_lock(anon_vma);
+			anon_vma_lock_read(anon_vma);
 			list_for_each_entry(vmac, &anon_vma->head,
 					    same_anon_vma) {
 				vma = vmac->vma;
@@ -4724,7 +4724,7 @@ again:
 			struct anon_vma_chain *vmac;
 			struct vm_area_struct *vma;
 
-			anon_vma_lock(anon_vma);
+			anon_vma_lock_read(anon_vma);
 			list_for_each_entry(vmac, &anon_vma->head,
 					    same_anon_vma) {
 				vma = vmac->vma;
@@ -4786,7 +4786,7 @@ again:
 			struct anon_vma_chain *vmac;
 			struct vm_area_struct *vma;
 
-			anon_vma_lock(anon_vma);
+			anon_vma_lock_read(anon_vma);
 			list_for_each_entry(vmac, &anon_vma->head,
 					    same_anon_vma) {
 				vma = vmac->vma;
