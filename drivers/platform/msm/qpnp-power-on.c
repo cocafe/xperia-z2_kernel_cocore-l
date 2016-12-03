@@ -23,6 +23,7 @@
 #include <linux/input.h>
 #include <linux/log2.h>
 #include <linux/qpnp/power-on.h>
+#include <linux/mutex.h>
 
 #define PMIC_VER_8941           0x01
 #define PMIC_VERSION_REG        0x0105
@@ -448,14 +449,18 @@ qpnp_pon_input_dispatch(struct qpnp_pon *pon, u32 pon_type)
 }
 
 #define PON_KEYCODE		116
+struct mutex qpnp_ponkey_rwmutex;
+struct mutex qpnp_ponkey_mutex;
 
 void qpnp_ponkey_emulate(int press)
 {
 	pr_info("%s: %s\n", __func__, press ? "Press" : "Release");
 
+	mutex_lock(&qpnp_ponkey_mutex);
 	input_report_key(p_pon->pon_input, PON_KEYCODE, press);
 
 	input_sync(p_pon->pon_input);
+	mutex_unlock(&qpnp_ponkey_mutex);
 }
 
 static irqreturn_t qpnp_kpdpwr_irq(int irq, void *_pon)
@@ -1137,6 +1142,8 @@ static ssize_t ponkey_emu_store(struct kobject *kobj, struct kobj_attribute *att
 	int ms;
 
 	if (sscanf(buf, "%d", &ms)) {
+		mutex_lock(&qpnp_ponkey_rwmutex);
+
 		qpnp_ponkey_emulate(1);
 
 		if (ms > 10) {
@@ -1146,6 +1153,8 @@ static ssize_t ponkey_emu_store(struct kobject *kobj, struct kobj_attribute *att
 		}
 
 		qpnp_ponkey_emulate(0);
+
+		mutex_unlock(&qpnp_ponkey_rwmutex);
 	}
 
 	return count;
@@ -1192,6 +1201,8 @@ static int __devinit qpnp_pon_probe(struct spmi_device *spmi)
 	}
 
 	p_pon = pon;
+	mutex_init(&qpnp_ponkey_rwmutex);
+	mutex_init(&qpnp_ponkey_mutex);
 
 	pon->spmi = spmi;
 
