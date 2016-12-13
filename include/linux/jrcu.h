@@ -49,7 +49,7 @@ extern void synchronize_sched(void);
 
 #define rcu_init(cpu)				do { } while (0)
 #define rcu_init_sched()			do { } while (0)
-#define exit_rcu()				do { } while (0)
+/*#define exit_rcu()				do { } while (0)*/
 
 static inline void __rcu_check_callbacks(int cpu, int user) { }
 #define rcu_check_callbacks			__rcu_check_callbacks
