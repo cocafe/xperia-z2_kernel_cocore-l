@@ -196,8 +196,8 @@ extern void rcu_idle_enter(void);
 extern void rcu_idle_exit(void);
 extern void rcu_irq_enter(void);
 extern void rcu_irq_exit(void);
-#endif
 extern void exit_rcu(void);
+#endif
 
 /**
  * RCU_NONIDLE - Indicate idle-loop code that needs RCU readers
