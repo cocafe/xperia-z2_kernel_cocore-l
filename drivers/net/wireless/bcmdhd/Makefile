@@ -140,6 +140,9 @@ DHDCFLAGS += -DDISABLE_TXBFR
 
 DHDCFLAGS += -DDHD_DONOT_FORWARD_BCMEVENT_AS_NETWORK_PKT
 
+# WLAN Band
+DHDCFLAGS += -DSEMC_WLAN_BAND=WLC_BAND_AUTO
+
 
 ##############################
 # Android Platform Definition
